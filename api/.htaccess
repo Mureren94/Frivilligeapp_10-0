@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Lad være med at røre kald til backend-mappen
+RewriteRule ^app/ - [L,NC]
+
+# Send alt andet til React index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

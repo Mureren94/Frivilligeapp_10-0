@@ -1,0 +1,5 @@
+{
+  "name": "Frivillig Opgavestyring kalender beta backend export",
+  "description": "En web-app til at administrere frivillige opgaver, profiler og se et leaderboard. Al data gemmes lokalt i din browser.",
+  "requestFramePermissions": []
+}

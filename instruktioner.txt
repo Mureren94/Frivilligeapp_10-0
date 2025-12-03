@@ -1,0 +1,75 @@
+
+
+Her er den ultimative "Master Prompt", du skal kopiere og give til Gemini Pro (eller en anden AI), når du uploader alle dine filer. Den er designet til at sikre, at den forstår præcis, hvordan den skal oversætte din localStorage logik til en rigtig PHP/MySQL backend.
+Sådan gør du:
+Download alle dine filer fra editoren.
+Start en ny chat med Gemini Pro.
+Upload filerne (især types.ts, DataContext.tsx, initialData.ts og App.tsx er vigtige).
+Indsæt nedenstående tekst:
+Kopier denne tekst ind til AI'en:
+
+
+
+//------------------------------------------------------------------------------------------------
+
+
+Jeg har udviklet en komplet React Single Page Application (SPA) til styring af frivillige ("FrivilligPortalen").
+Lige nu kører den udelukkende i browseren ved hjælp af `localStorage` og mock-data.
+
+Min opgave til dig er at kode en komplet **PHP og MySQL backend**, der erstatter den nuværende `localStorage` logik.
+
+Her er kildekoden (se vedhæftede filer).
+
+**Dine roller:**
+Du skal agere som en Senior Full Stack Udvikler med speciale i PHP, MySQL og React.
+
+**Opgavebeskrivelse:**
+Du skal levere filerne til backenden og instruktioner til at opdatere frontenden, så den taler sammen med den nye backend.
+
+**Kravspecifikationer:**
+
+1.  **Database (MySQL):**
+    *   Analyser filen `types.ts` grundigt.
+    *   Lav et `schema.sql` script, der opretter alle nødvendige tabeller:
+        *   `users` (Husk password hashing!)
+        *   `roles` (Json kolonne til permissions)
+        *   `tasks`
+        *   `shifts`
+        *   `shift_roles`
+        *   `shift_trades`
+        *   `settings` (Til AppSettings)
+        *   `gallery_images`
+    *   Sørg for korrekte relationer (Foreign Keys) og indeksering.
+    *   *VIGTIGT:* Du SKAL implementere logik til at gemme uploadede billeder som fysiske filer i en /uploads mappe på serveren, og kun gemme filstien i databasen. Du må IKKE gemme billeder som Base64 i databasen.
+
+2.  **Backend API (PHP):**
+    *   Lav en `db.php` til databaseforbindelse (PDO).
+    *   Lav en RESTful API struktur (f.eks. en router i `index.php` eller separate filer i en `/api` mappe).
+    *   Implementer endpoints der matcher ALLE funktioner i min `DataContext.tsx`:
+        *   `GET /api/init` (Hent bruger, indstillinger, roller, kategorier ved start).
+        *   `POST /api/login` (Returner session cookie eller JWT).
+        *   `POST /api/logout`.
+        *   CRUD endpoints for Tasks, Shifts, Users, Gallery.
+        *   Shift Logic: `POST /api/shifts/take`, `POST /api/shifts/leave`, `POST /api/shifts/trade`.
+    *   **Sikkerhed:** Alle endpoints skal tjekke om brugeren er logget ind, og om de har de rette rettigheder (se `permissions.ts`).
+
+3.  **Frontend Integration (React):**
+    *   Jeg skal have en opdateret version af `services/api.ts`, der indeholder alle `fetch` kald til din nye PHP backend.
+    *   Jeg skal have en opdateret version af `contexts/DataContext.tsx`, hvor du fjerner `useLocalStorage` og i stedet bruger din nye `api.ts` service til at hente og gemme data. Sørg for at håndtere "loading states".
+
+4.  **Data Migrering:**
+    *   Lav et PHP script (`seed.php`), der tager dataene fra `initialData.ts` og indsætter dem i MySQL databasen, så jeg ikke starter med en tom side.
+
+**Output format:**
+Lever koden i separate blokke for hver fil (`schema.sql`, `db.php`, `api.php`, `DataContext.tsx`, osv.), klar til copy-paste.
+
+
+
+//-------------------------------------------------------------------------------------------------
+
+
+Et par tips til når du går i gang med backenden:
+Billeder: Appen bruger Base64 billeder lige nu. Det er nemt, men kan gøre databasen tung. Hvis du beder AI'en om at "gemme filer på disk", bliver det mere professionelt, men også lidt mere komplekst at sætte op.
+Hosting: Sørg for at din server understøtter PHP og MySQL (de fleste gør).
+React Build: Når du er færdig med at udvikle, skal du køre npm run build (hvis du bruger et rigtigt build setup) for at få de statiske filer, du skal lægge op på serveren sammen med PHP-filerne. Hvis du bruger den nuværende import-map struktur (uden build step), skal du bare lægge filerne op, men husk at PHP-filerne skal ligge, så browseren kan ramme dem (f.eks. i en /api mappe).
+Held og lykke med projektet! Det er en solid app, du har fået bygget.
