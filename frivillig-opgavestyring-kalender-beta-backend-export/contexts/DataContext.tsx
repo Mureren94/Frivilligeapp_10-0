@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 const DataContext = createContext<IDataContext | null>(null);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // State management
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [tasks, setTasks] = useState<Task[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
@@ -17,45 +16,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [settings, setSettings] = useState<AppSettings>({} as AppSettings);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [signedUpTaskIds, setSignedUpTaskIds] = useState<string[]>([]);
-    
-    // Shifts & Gallery
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [shiftRoles, setShiftRoles] = useState<ShiftRole[]>([]);
     const [shiftTrades, setShiftTrades] = useState<ShiftTrade[]>([]);
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-    
-    // Dummy states for kompatibilitet
     const [userTaskSignups, setUserTaskSignups] = useState<any>({});
     const [passwordResetTokens, setPasswordResetTokens] = useState<any[]>([]);
     const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
-
     const [isLoading, setIsLoading] = useState(true);
 
-    // Hent data fra serveren
     const fetchData = async () => {
         try {
             const data: any = await api.getInitData();
-            
-            setUsers(data.users);
-            setRoles(data.roles);
-            setTasks(data.tasks);
-            setCategories(data.categories);
-            setShiftRoleTypes(data.shiftRoleTypes || []);
-            setSettings(data.settings);
-            setShifts(data.shifts);
-            setShiftRoles(data.shiftRoles);
-            setShiftTrades(data.shiftTrades);
-            setGalleryImages(data.galleryImages);
-            
-            if (data.currentUser) {
-                setCurrentUser(data.currentUser);
-                setSignedUpTaskIds(data.signedUpTaskIds);
-            }
-        } catch (error) {
-            console.error("Kunne ikke hente data (måske ikke logget ind)", error);
-        } finally {
-            setIsLoading(false);
-        }
+            setUsers(data.users); setRoles(data.roles); setTasks(data.tasks);
+            setCategories(data.categories); setShiftRoleTypes(data.shiftRoleTypes || []);
+            setSettings(data.settings); setShifts(data.shifts); setShiftRoles(data.shiftRoles);
+            setShiftTrades(data.shiftTrades); setGalleryImages(data.galleryImages);
+            if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
+        } catch (error) { console.error("Kunne ikke hente data", error); } 
+        finally { setIsLoading(false); }
     };
 
     useEffect(() => {
@@ -81,33 +60,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleLogin = useCallback(async (email: string, password: string): Promise<boolean> => {
         try {
             const res: any = await api.login({ email, password });
-            if (res.success) {
-                await fetchData(); 
-                return true;
-            }
+            if (res.success) { await fetchData(); return true; }
             return false;
-        } catch (e) {
-            console.error(e);
-            return false;
-        }
+        } catch (e) { return false; }
     }, []);
 
     const handleLogout = useCallback(async (callback: () => void) => {
-        await api.logout();
-        setCurrentUser(null);
-        callback();
+        await api.logout(); setCurrentUser(null); callback();
     }, []);
 
     const handleCreateTask = useCallback(async (newTaskData: any) => {
         try {
-            // Vi tilføjer 'as Task' her for at fikse 'unknown' fejlen
-            const createdTask = await api.createTask(newTaskData) as Task; 
-            
+            const createdTask = await api.createTask(newTaskData) as Task;
             setTasks(prev => [...prev, createdTask]);
             toast.success(`Opgaven "${createdTask.title}" er oprettet.`);
-        } catch (e) {
-            toast.error("Fejl ved oprettelse af opgave");
-        }
+        } catch (e) { toast.error("Fejl ved oprettelse af opgave"); }
     }, []);
 
     const handleSignUp = useCallback(async (taskId: string) => {
@@ -116,9 +83,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSignedUpTaskIds(prev => [...prev, taskId]);
             setTasks(prev => prev.map(t => t.id === taskId ? {...t, volunteers_needed: t.volunteers_needed - 1} : t));
             toast.success("Du er tilmeldt!");
-        } catch (e) {
-            toast.error("Kunne ikke tilmelde opgave");
-        }
+        } catch (e) { toast.error("Kunne ikke tilmelde opgave"); }
     }, []);
 
     const handleUnregister = useCallback(async (taskId: string) => {
@@ -127,9 +92,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSignedUpTaskIds(prev => prev.filter(id => id !== taskId));
              setTasks(prev => prev.map(t => t.id === taskId ? {...t, volunteers_needed: t.volunteers_needed + 1} : t));
             toast.success("Du er afmeldt.");
-        } catch (e) {
-            toast.error("Fejl ved afmelding");
-        }
+        } catch (e) { toast.error("Fejl ved afmelding"); }
     }, []);
 
     const handleProfileSave = useCallback(async (profileUpdate: Partial<Profile>) => {
@@ -140,9 +103,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentUser(prev => prev ? { ...prev, ...profileUpdate } as User : null);
             }
             toast.success('Profil opdateret');
-        } catch (e) {
-            toast.error("Fejl ved gemning af profil");
-        }
+        } catch (e) { toast.error("Fejl ved gemning af profil"); }
     }, [currentUser]);
 
     const handleTakeShiftRole = useCallback(async (shiftRoleId: string) => {
@@ -152,9 +113,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setShiftRoles(prev => prev.map(r => r.id === shiftRoleId ? { ...r, userId: currentUser.id } : r));
                 toast.success("Vagt taget!");
             }
-        } catch (e) {
-            toast.error("Kunne ikke tage vagt.");
-        }
+        } catch (e) { toast.error("Kunne ikke tage vagt."); }
     }, [currentUser]);
 
     const handleLeaveShiftRole = useCallback(async (shiftRoleId: string) => {
@@ -162,49 +121,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.leaveShiftRole(shiftRoleId);
             setShiftRoles(prev => prev.map(r => r.id === shiftRoleId ? { ...r, userId: null } : r));
             toast.success("Du har forladt vagten.");
-        } catch (e) {
-            toast.error("Fejl ved forladelse af vagt");
-        }
+        } catch (e) { toast.error("Fejl ved forladelse af vagt"); }
     }, []);
 
-    // --- NYE FUNKTIONER (PAKKE 4) ---
-    
-    // Gem indstillinger
     const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
         try {
             await api.saveSettings(newSettings);
             setSettings(newSettings);
             toast.success("Indstillinger gemt.");
-        } catch (e) {
-            toast.error("Kunne ikke gemme indstillinger.");
-        }
+        } catch (e) { toast.error("Kunne ikke gemme indstillinger."); }
     }, []);
 
-    // Tilføj kategori
     const handleAddCategory = useCallback(async (name: string) => {
         try {
             await api.addCategory(name);
             setCategories(prev => [...prev, name].sort());
             toast.success("Kategori tilføjet.");
-        } catch (e) {
-            toast.error("Fejl ved tilføjelse.");
-        }
+        } catch (e) { toast.error("Fejl ved tilføjelse."); }
     }, []);
 
-    // Slet kategori
     const handleDeleteCategory = useCallback(async (name: string) => {
         try {
             await api.deleteCategory(name);
             setCategories(prev => prev.filter(c => c !== name));
             toast.success("Kategori slettet.");
-        } catch (e) {
-            toast.error("Fejl ved sletning.");
-        }
+        } catch (e) { toast.error("Fejl ved sletning."); }
     }, []);
 
-    // Placeholder funktioner
+    const handleSaveRole = useCallback(async (role: Role) => {
+        try {
+            await api.saveRole(role);
+            setRoles(prev => {
+                const exists = prev.some(r => r.id === role.id);
+                return exists ? prev.map(r => r.id === role.id ? role : r) : [...prev, role];
+            });
+            toast.success("Rolle gemt.");
+        } catch (e) { toast.error("Kunne ikke gemme rolle."); }
+    }, []);
+
+    const handleDeleteRole = useCallback(async (roleId: string) => {
+        try {
+            await api.deleteRole(roleId);
+            setRoles(prev => prev.filter(r => r.id !== roleId));
+            toast.success("Rolle slettet.");
+        } catch (e) { toast.error("Kunne ikke slette rolle."); }
+    }, []);
+
+    const handleSaveUser = useCallback(async (user: User) => {
+        try {
+            await api.saveUser(user);
+            setUsers(prev => {
+                const exists = prev.some(u => u.id === user.id);
+                return exists ? prev.map(u => u.id === user.id ? user : u) : [...prev, user];
+            });
+            return true;
+        } catch (e) { toast.error("Kunne ikke gemme bruger."); return false; }
+    }, []);
+
+    const handleDeleteUser = useCallback(async (userId: string) => {
+        try {
+            await api.deleteUser(userId);
+            setUsers(prev => prev.filter(u => u.id !== userId));
+            toast.success("Bruger slettet.");
+        } catch (e) { toast.error("Kunne ikke slette bruger."); }
+    }, []);
+
     const handlePasswordReset = (email: string, newPass: string) => true;
-    const handleForgotPasswordRequest = (email: string): 'success' => 'success'; // Rettet her
+    const handleForgotPasswordRequest = (email: string): 'success' => 'success';
     const sendEmailNotification = () => {};
     const handleInitiateShiftTrade = () => {};
     const handleAcceptShiftTrade = () => {};
@@ -222,8 +205,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         handleLogin, handleLogout, handleSignUp, handleCreateTask, handleUnregister, handleProfileSave,
         handlePasswordReset, handleForgotPasswordRequest, toggleTheme, userHasPermission, sendEmailNotification,
         handleTakeShiftRole, handleLeaveShiftRole, handleInitiateShiftTrade, handleAcceptShiftTrade, handleCancelShiftTrade,
-        // Husk at sende de nye funktioner med ud:
-        handleSaveSettings, handleAddCategory, handleDeleteCategory 
+        handleSaveSettings, handleAddCategory, handleDeleteCategory, handleSaveRole, handleDeleteRole, handleSaveUser, handleDeleteUser
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

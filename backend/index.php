@@ -1,7 +1,6 @@
 <?php
-// index.php
+// index.php - ENDELIG VERSION
 
-// CORS Headers
 header("Access-Control-Allow-Origin: https://api.voreskerne.com");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -17,7 +16,6 @@ require_once 'utils.php';
 $request = $_SERVER['REQUEST_URI'];
 $path = parse_url($request, PHP_URL_PATH);
 
-// Fjern "/app" fra stien hvis nødvendigt
 if (strpos($path, '/app') === 0) {
     $path = substr($path, 4); 
 }
@@ -50,14 +48,14 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     requireAuth();
     $userId = $_SESSION['user_id'];
     
-    // Hent bruger
     $stmt = $pdo->prepare("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $currentUser = $stmt->fetch();
-    unset($currentUser['password_hash']);
-    $currentUser['notification_preferences'] = json_decode($currentUser['notification_preferences']);
+    if ($currentUser) {
+        unset($currentUser['password_hash']);
+        $currentUser['notification_preferences'] = json_decode($currentUser['notification_preferences']);
+    }
 
-    // Hent lister
     $users = $pdo->query("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users")->fetchAll();
     foreach($users as &$u) $u['notification_preferences'] = json_decode($u['notification_preferences']);
     
@@ -65,12 +63,9 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     foreach($roles as &$r) $r['permissions'] = json_decode($r['permissions']);
 
     $tasks = $pdo->query("SELECT * FROM tasks")->fetchAll();
-    
-    // Kategorier og Vagtroller
     $categories = $pdo->query("SELECT name FROM categories")->fetchAll(PDO::FETCH_COLUMN);
-    $shiftRoleTypes = $pdo->query("SELECT name FROM shift_role_types")->fetchAll(PDO::FETCH_COLUMN); // NY!
+    $shiftRoleTypes = $pdo->query("SELECT name FROM shift_role_types")->fetchAll(PDO::FETCH_COLUMN);
     
-    // Indstillinger
     $settings = $pdo->query("SELECT * FROM settings WHERE id = 1")->fetch();
     if ($settings) {
         $settingsFrontend = [
@@ -108,7 +103,7 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         'roles' => $roles,
         'tasks' => $tasks,
         'categories' => $categories,
-        'shiftRoleTypes' => $shiftRoleTypes, // Sender den nye liste til frontend
+        'shiftRoleTypes' => $shiftRoleTypes,
         'settings' => $settingsFrontend,
         'shifts' => $shifts,
         'shiftRoles' => $shiftRoles,
@@ -118,7 +113,86 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-// --- SHIFT ROLE TYPES (NYE ENDPOINTS) ---
+// --- USERS (ADMIN) ---
+if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    $passwordHash = !empty($data['password']) ? password_hash($data['password'], PASSWORD_DEFAULT) : password_hash(uniqid(), PASSWORD_DEFAULT);
+    
+    $check = $pdo->prepare("SELECT id FROM users WHERE id = ?");
+    $check->execute([$data['id']]);
+    
+    if ($check->rowCount() > 0) {
+        $sql = "UPDATE users SET name = ?, email = ?, role_id = ?, points = ? WHERE id = ?";
+        $pdo->prepare($sql)->execute([$data['name'], $data['email'], $data['role'], $data['points'], $data['id']]);
+    } else {
+        $sql = "INSERT INTO users (id, name, email, password_hash, role_id, points, notification_preferences) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $pdo->prepare($sql)->execute([
+            $data['id'], $data['name'], $data['email'], $passwordHash, 
+            $data['role'], $data['points'], json_encode($data['notification_preferences'] ?? new stdClass())
+        ]);
+    }
+    jsonResponse(['success' => true]);
+}
+
+if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    requireAuth();
+    $data = getJsonInput();
+    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role_id != 'superadmin'");
+    $stmt->execute([$data['id']]);
+    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
+    else { http_response_code(400); jsonResponse(['error' => 'Kan ikke slette bruger']); }
+}
+
+// --- ROLES ---
+if ($path === '/roles' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    $permissions = json_encode($data['permissions']);
+    $stmt = $pdo->prepare("INSERT INTO roles (id, name, permissions, is_default) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), permissions = VALUES(permissions)");
+    $stmt->execute([$data['id'], $data['name'], $permissions, $data['is_default'] ? 1 : 0]);
+    jsonResponse(['success' => true]);
+}
+
+if ($path === '/roles' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    requireAuth();
+    $data = getJsonInput();
+    $stmt = $pdo->prepare("DELETE FROM roles WHERE id = ? AND is_default = 0");
+    $stmt->execute([$data['id']]);
+    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
+    else { http_response_code(400); jsonResponse(['error' => 'Kan ikke slette standard rolle']); }
+}
+
+// --- SETTINGS ---
+if ($path === '/settings' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
+    requireAuth();
+    $data = getJsonInput();
+    $menuVisibility = json_encode($data['menuVisibility']);
+    $smtp = json_encode($data['smtp']);
+    $defaults = json_encode($data['notification_role_defaults']);
+    $templates = json_encode($data['email_templates']);
+    
+    $siteIcon = isset($data['siteIcon']) ? saveBase64Image($data['siteIcon']) : null;
+    $defaultTaskImage = isset($data['defaultTaskImage']) ? saveBase64Image($data['defaultTaskImage']) : null;
+
+    $sql = "UPDATE settings SET 
+            site_name = ?, site_icon = IF(? IS NOT NULL, ?, site_icon), site_name_color = ?, 
+            default_task_image = IF(? IS NOT NULL, ?, default_task_image), point_goal = ?, 
+            enable_points = ?, min_task_points = ?, max_task_points = ?, 
+            menu_visibility = ?, smtp_config = ?, notification_role_defaults = ?, email_templates = ? 
+            WHERE id = 1";
+            
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $data['siteName'], $siteIcon, $siteIcon, $data['siteNameColor'],
+        $defaultTaskImage, $defaultTaskImage, $data['pointGoal'],
+        $data['enablePoints'] ? 1 : 0, $data['minTaskPoints'], $data['maxTaskPoints'],
+        $menuVisibility, $smtp, $defaults, $templates
+    ]);
+    jsonResponse(['success' => true]);
+}
+
+// --- CATEGORIES & SHIFT ROLE TYPES ---
 if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -128,7 +202,6 @@ if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonResponse(['success' => true]);
     }
 }
-
 if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
     requireAuth();
     $data = getJsonInput();
@@ -138,8 +211,57 @@ if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
         jsonResponse(['success' => true]);
     }
 }
+if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $stmt = $pdo->prepare("INSERT IGNORE INTO categories (name) VALUES (?)");
+        $stmt->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
+}
+if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $stmt = $pdo->prepare("DELETE FROM categories WHERE name = ?");
+        $stmt->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
+}
 
-// --- TASKS ---
+// --- GALLERY ---
+if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    if (isset($data['data'])) {
+        $imagePath = saveBase64Image($data['data']);
+        $sql = "INSERT INTO gallery_images (id, name, path, size, width, height, uploaded_by, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $pdo->prepare($sql)->execute([
+            $data['id'], $data['name'], $imagePath, $data['size'], $data['width'], $data['height'], $_SESSION['user_id'], json_encode($data['tags'] ?? [])
+        ]);
+        $data['data'] = $imagePath;
+        jsonResponse($data);
+    } else {
+        http_response_code(400); jsonResponse(['error' => 'No image data']);
+    }
+}
+if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    requireAuth();
+    $data = getJsonInput();
+    $id = $data['id'];
+    $stmt = $pdo->prepare("SELECT path FROM gallery_images WHERE id = ?");
+    $stmt->execute([$id]);
+    $img = $stmt->fetch();
+    if ($img) {
+        $filePath = str_replace('app/', '', $img['path']);
+        if (file_exists($filePath)) unlink($filePath);
+        $pdo->prepare("DELETE FROM gallery_images WHERE id = ?")->execute([$id]);
+        jsonResponse(['success' => true]);
+    }
+}
+
+// --- TASKS, SHIFTS, USER PROFILE ---
 if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -149,7 +271,6 @@ if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $data['image'] = $imagePath;
     jsonResponse($data);
 }
-
 if ($path === '/tasks/signup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -163,13 +284,9 @@ if ($path === '/tasks/signup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("INSERT INTO task_signups (task_id, user_id) VALUES (?, ?)")->execute([$data['taskId'], $_SESSION['user_id']]);
             $pdo->commit();
             jsonResponse(['success' => true]);
-        } else {
-            $pdo->rollBack();
-            http_response_code(400); jsonResponse(['error' => 'Ingen ledige pladser']);
-        }
+        } else { $pdo->rollBack(); http_response_code(400); jsonResponse(['error' => 'Ingen ledige pladser']); }
     } catch (Exception $e) { $pdo->rollBack(); http_response_code(500); jsonResponse(['error' => $e->getMessage()]); }
 }
-
 if ($path === '/tasks/unregister' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -181,8 +298,6 @@ if ($path === '/tasks/unregister' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonResponse(['success' => true]);
     } catch (Exception $e) { $pdo->rollBack(); jsonResponse(['error' => $e->getMessage()]); }
 }
-
-// --- SHIFTS ---
 if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -191,7 +306,6 @@ if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
     else { http_response_code(400); jsonResponse(['error' => 'Rollen er ikke ledig']); }
 }
-
 if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
@@ -199,8 +313,6 @@ if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$data['shiftRoleId']]);
     jsonResponse(['success' => true]);
 }
-
-// --- PROFILE ---
 if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     requireAuth();
     $data = getJsonInput();
@@ -220,107 +332,6 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
         $pdo->prepare("UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
     }
     jsonResponse(['success' => true]);
-}
-
-// --- SETTINGS (GEM) ---
-if ($path === '/settings' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
-    requireAuth();
-    $data = getJsonInput();
-    // Konverter arrays/objekter til JSON før lagring i DB
-    $menuVisibility = json_encode($data['menuVisibility']);
-    $smtp = json_encode($data['smtp']);
-    $defaults = json_encode($data['notification_role_defaults']);
-    $templates = json_encode($data['email_templates']);
-    
-    // Tjek om logo/billede er base64 og skal gemmes
-    $siteIcon = isset($data['siteIcon']) ? saveBase64Image($data['siteIcon']) : null;
-    $defaultTaskImage = isset($data['defaultTaskImage']) ? saveBase64Image($data['defaultTaskImage']) : null;
-
-    $sql = "UPDATE settings SET 
-            site_name = ?, site_icon = IF(? IS NOT NULL, ?, site_icon), site_name_color = ?, 
-            default_task_image = IF(? IS NOT NULL, ?, default_task_image), point_goal = ?, 
-            enable_points = ?, min_task_points = ?, max_task_points = ?, 
-            menu_visibility = ?, smtp_config = ?, notification_role_defaults = ?, email_templates = ? 
-            WHERE id = 1";
-            
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        $data['siteName'], $siteIcon, $siteIcon, $data['siteNameColor'],
-        $defaultTaskImage, $defaultTaskImage, $data['pointGoal'],
-        $data['enablePoints'] ? 1 : 0, $data['minTaskPoints'], $data['maxTaskPoints'],
-        $menuVisibility, $smtp, $defaults, $templates
-    ]);
-    
-    jsonResponse(['success' => true]);
-}
-
-// --- CATEGORIES (GEM/SLET) ---
-if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireAuth();
-    $data = getJsonInput();
-    if (!empty($data['name'])) {
-        $stmt = $pdo->prepare("INSERT IGNORE INTO categories (name) VALUES (?)");
-        $stmt->execute([$data['name']]);
-        jsonResponse(['success' => true]);
-    }
-}
-
-if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    requireAuth();
-    $data = getJsonInput();
-    if (!empty($data['name'])) {
-        $stmt = $pdo->prepare("DELETE FROM categories WHERE name = ?");
-        $stmt->execute([$data['name']]);
-        jsonResponse(['success' => true]);
-    }
-}
-
-// --- GALLERY (GEM) ---
-if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireAuth();
-    $data = getJsonInput();
-    
-    if (isset($data['data'])) {
-        $imagePath = saveBase64Image($data['data']);
-        
-        $sql = "INSERT INTO gallery_images (id, name, path, size, width, height, uploaded_by, tags) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $data['id'], $data['name'], $imagePath, 
-            $data['size'], $data['width'], $data['height'], 
-            $_SESSION['user_id'], json_encode($data['tags'] ?? [])
-        ]);
-        
-        $data['data'] = $imagePath; // Returner stien
-        jsonResponse($data);
-    } else {
-        http_response_code(400);
-        jsonResponse(['error' => 'No image data']);
-    }
-}
-
-if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    requireAuth();
-    $data = getJsonInput();
-    $id = $data['id'];
-    
-    // Hent stien for at slette filen
-    $stmt = $pdo->prepare("SELECT path FROM gallery_images WHERE id = ?");
-    $stmt->execute([$id]);
-    $img = $stmt->fetch();
-    
-    if ($img) {
-        // Slet fil fra disk (hvis den findes og er en lokal fil)
-        // Stien er gemt som "app/uploads/...", men vi er allerede i "app/", så vi skal justere
-        $filePath = str_replace('app/', '', $img['path']);
-        if (file_exists($filePath)) {
-            unlink($filePath);
-        }
-        
-        $pdo->prepare("DELETE FROM gallery_images WHERE id = ?")->execute([$id]);
-        jsonResponse(['success' => true]);
-    }
 }
 
 http_response_code(404);
