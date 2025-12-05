@@ -47,6 +47,13 @@ export const api = {
     getImageUrl: (path: string) => {
         if (!path) return '';
         if (path.startsWith('data:') || path.startsWith('http')) return path;
-        return `${API_BASE_URL}/${path}`;
+        
+        // Hvis billedstien (path) allerede starter med 'app/', 
+        // skal vi fjerne '/app' fra API_BASE_URL for at undgå dubletter.
+        const baseUrl = path.startsWith('app/') 
+            ? API_BASE_URL.replace(/\/app$/, '') 
+            : API_BASE_URL;
+
+        return `${baseUrl}/${path}`;
     }
 };

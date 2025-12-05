@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import type { Page } from '../types';
 import { useData } from '../contexts/DataContext';
@@ -81,14 +80,19 @@ export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, onL
         <header className="bg-white dark:bg-slate-800 shadow-md dark:shadow-slate-700/50 sticky top-0 z-50 transition-colors duration-300">
             <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex items-center gap-2 overflow-hidden">
+                         {settings.siteIcon && (
+                            <img src={settings.siteIcon} alt="Logo" className="h-8 w-8 object-contain" />
+                        )}
                         <h1 
-                            className="text-2xl font-bold text-emerald-600 dark:text-emerald-400"
+                            className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 truncate"
                             style={siteNameStyle}
                         >
                             {settings.siteName}
                         </h1>
                     </div>
+                    
+                    {/* DESKTOP MENU */}
                     <div className="hidden md:block">
                         <div className="ml-10 flex items-center space-x-4">
                             {baseNavItems.map((item) => (
@@ -114,15 +118,10 @@ export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, onL
                             </button>
                         </div>
                     </div>
-                    <div className="md:hidden flex items-center gap-2">
-                        {settings.enablePoints !== false && (
-                            <div className="flex-shrink-0 flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-1 rounded-full text-xs">
-                                <span>{currentUser.points} Point</span>
-                            </div>
-                        )}
-                        <button onClick={toggleTheme} className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200" aria-label="Skift tema">
-                            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-                        </button>
+
+                    {/* MOBIL MENU KNAP */}
+                    <div className="md:hidden flex items-center">
+                         {/* Vi har fjernet point og tema-knap herfra for at give plads */}
                          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200" aria-controls="mobile-menu" aria-expanded={isMenuOpen}>
                             <span className="sr-only">Åbn menu</span>
                             {isMenuOpen ? (
@@ -138,8 +137,10 @@ export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, onL
                     </div>
                 </div>
             </nav>
+
+            {/* MOBIL MENU DROPDOWN */}
             {isMenuOpen && (
-                <div className="md:hidden" id="mobile-menu">
+                <div className="md:hidden bg-white dark:bg-slate-800 border-t dark:border-slate-700 shadow-xl" id="mobile-menu">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                         {baseNavItems.map((item) => (
                             <button
@@ -156,7 +157,15 @@ export const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, onL
                         ))}
                     </div>
                     <div className="pt-3 pb-3 border-t border-slate-200 dark:border-slate-700">
+                        {/* Her er Tema-knappen nu! */}
                         <div className="px-2 space-y-1">
+                            <button 
+                                onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
+                                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            >
+                                {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+                                <span>Skift til {theme === 'light' ? 'mørkt' : 'lyst'} tema</span>
+                            </button>
                             <button
                                 onClick={() => {
                                     onLogout();
