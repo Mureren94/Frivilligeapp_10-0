@@ -75,8 +75,8 @@ export const EmailManagement: React.FC = () => {
                                 <div key={type} className="p-4 border dark:border-slate-700 rounded-lg">
                                     <h5 className="font-semibold text-md dark:text-slate-100">{details.name}</h5>
                                     <div className="mt-2 space-y-2">
-                                        <input id={`subject-${type}`} name={`subject-${type}`} type="text" value={localSettings.email_templates?.[type]?.subject || ''} onChange={e => handleTemplateChange(type, 'subject', e.target.value)} placeholder="Emne" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                                        <textarea id={`body-${type}`} name={`body-${type}`} value={localSettings.email_templates?.[type]?.body || ''} onChange={e => handleTemplateChange(type, 'body', e.target.value)} placeholder="Brødtekst" rows={6} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                        <input id={`subject-${type}`} name={`subject-${type}`} aria-label="Emne" type="text" value={localSettings.email_templates?.[type]?.subject || ''} onChange={e => handleTemplateChange(type, 'subject', e.target.value)} placeholder="Emne" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                        <textarea id={`body-${type}`} name={`body-${type}`} aria-label="Brødtekst" value={localSettings.email_templates?.[type]?.body || ''} onChange={e => handleTemplateChange(type, 'body', e.target.value)} placeholder="Brødtekst" rows={6} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                                         <div className="mt-2 space-y-1">
                                             <label className="text-sm font-medium text-slate-700 dark:text-slate-400">Leveringsmetode (for flere modtagere)</label>
                                             <div className="flex items-center gap-x-6 gap-y-2 flex-wrap">
@@ -116,11 +116,26 @@ export const EmailManagement: React.FC = () => {
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                     <h4 className="text-lg font-semibold mb-2 dark:text-slate-200">SMTP Server Indstillinger</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label htmlFor="smtp.senderEmail" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Afsender Email</label><input type="email" id="smtp.senderEmail" name="smtp.senderEmail" value={localSettings.smtp.senderEmail} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>
-                        <div><label htmlFor="smtp.host" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Host</label><input type="text" id="smtp.host" name="smtp.host" value={localSettings.smtp.host} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>
-                        <div><label htmlFor="smtp.port" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Port</label><input type="text" id="smtp.port" name="smtp.port" value={localSettings.smtp.port} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>
-                        <div><label htmlFor="smtp.user" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Brugernavn</label><input type="text" id="smtp.user" name="smtp.user" value={localSettings.smtp.user} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>
-                        <div><label htmlFor="smtp.pass" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Adgangskode</label><input type="password" id="smtp.pass" name="smtp.pass" value={localSettings.smtp.pass} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>
+                        <div>
+                            <label htmlFor="smtp-senderEmail" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Afsender Email</label>
+                            <input type="email" id="smtp-senderEmail" name="smtp.senderEmail" value={localSettings.smtp.senderEmail} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                        </div>
+                        <div>
+                            <label htmlFor="smtp-host" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Host</label>
+                            <input type="text" id="smtp-host" name="smtp.host" value={localSettings.smtp.host} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                        </div>
+                        <div>
+                            <label htmlFor="smtp-port" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Port</label>
+                            <input type="text" id="smtp-port" name="smtp.port" value={localSettings.smtp.port} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                        </div>
+                        <div>
+                            <label htmlFor="smtp-user" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Brugernavn</label>
+                            <input type="text" id="smtp-user" name="smtp.user" value={localSettings.smtp.user} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                        </div>
+                        <div>
+                            <label htmlFor="smtp-pass" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Adgangskode</label>
+                            <input type="password" id="smtp-pass" name="smtp.pass" value={localSettings.smtp.pass} onChange={handleSmtpChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                        </div>
                     </div>
                 </div>
                 <button onClick={onSave} className="w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Gem Email Indstillinger</button>

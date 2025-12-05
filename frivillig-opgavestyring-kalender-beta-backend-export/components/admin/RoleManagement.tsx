@@ -59,6 +59,7 @@ const RoleEditModal: React.FC<RoleEditModalProps> = ({ role, onSave, onClose }) 
                                 <div className="flex items-center h-5">
                                     <input
                                         id={`perm-${permission.id}`}
+                                        name={`perm-${permission.id}`}
                                         type="checkbox"
                                         checked={editedRole.permissions.includes(permission.id)}
                                         onChange={e => handlePermissionChange(permission.id, e.target.checked)}

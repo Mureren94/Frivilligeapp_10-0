@@ -168,15 +168,18 @@ export const ProfilePage: React.FC = () => {
                 <div className="md:col-span-2 space-y-4">
                     <div>
                         <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Navn</label>
-                        <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
+                        {/* TILFØJET: name="name" og autocomplete="name" */}
+                        <input type="text" id="name" name="name" autocomplete="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
                     </div>
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Email</label>
-                        <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
+                        {/* TILFØJET: name="email" og autocomplete="email" */}
+                        <input type="email" id="email" name="email" autocomplete="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
                     </div>
-                     <div>
+                    <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Telefonnummer</label>
-                        <input type="tel" id="phone" value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
+                        {/* TILFØJET: name="phone" og autocomplete="tel" */}
+                        <input type="tel" id="phone" name="phone" autocomplete="tel" value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
                     </div>
                     <div className="flex items-center">
                         <input
@@ -215,11 +218,13 @@ export const ProfilePage: React.FC = () => {
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Ny Adgangskode (lad stå tom for ikke at ændre)</label>
-                                <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
+                                {/* TILFØJET: name="new-password" og autocomplete="new-password" */}
+                                <input type="password" id="password" name="new-password" autocomplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div>
                                 <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Bekræft Ny Adgangskode</label>
-                                <input type="password" id="confirm-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
+                                {/* TILFØJET: name="confirm-password" og autocomplete="new-password" */}
+                                <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             {passwordError && <p className="text-sm text-rose-600">{passwordError}</p>}
                         </div>

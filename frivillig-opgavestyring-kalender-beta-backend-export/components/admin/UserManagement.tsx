@@ -298,8 +298,8 @@ export const UserManagement: React.FC = () => {
                     <div>
                         {/* Filters and bulk actions */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                            <input type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Søg på navn eller email..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                            <select value={selectedRoleFilter} onChange={e => setSelectedRoleFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                            <input id="user-search" name="user-search" aria-label="Søg brugere" type="text" value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Søg på navn eller email..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <select id="user-role-filter" name="user-role-filter" aria-label="Filtrer efter rolle" value={selectedRoleFilter} onChange={e => setSelectedRoleFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
                                 <option value="all">Alle Roller</option>
                                 {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                             </select>
@@ -315,6 +315,7 @@ export const UserManagement: React.FC = () => {
                              <input 
                                 type="checkbox"
                                 id="select-all-users"
+                                name="select-all-users"
                                 checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
                                 onChange={handleToggleSelectAll}
                                 className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"
@@ -327,6 +328,9 @@ export const UserManagement: React.FC = () => {
                                     <div className="flex items-center gap-3 flex-grow">
                                         <input
                                             type="checkbox"
+                                            id={`user-select-${user.id}`}
+                                            name={`user-select-${user.id}`}
+                                            aria-label={`Vælg bruger ${user.name}`}
                                             checked={selectedUserIds.includes(user.id)}
                                             onChange={() => handleToggleSelectUser(user.id)}
                                             className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 flex-shrink-0"
@@ -356,8 +360,8 @@ export const UserManagement: React.FC = () => {
                         <div>
                             <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Opret Ny Bruger</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Navn" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                                <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                <input id="new-user-name" name="new-user-name" aria-label="Navn" type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Navn" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                <input id="new-user-email" name="new-user-email" aria-label="Email" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                                 <div className="sm:col-span-2">
                                     <label htmlFor="new-user-role" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Vælg Rolle</label>
                                     <select 

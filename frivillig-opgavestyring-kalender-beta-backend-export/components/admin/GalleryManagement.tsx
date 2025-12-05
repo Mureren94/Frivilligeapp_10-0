@@ -131,8 +131,24 @@ export const GalleryManagement: React.FC = () => {
             </div>
             <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                     <input type="text" placeholder="Søg..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="p-2 border rounded w-full md:w-64 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                    <select value={sortOption} onChange={(e) => setSortOption(e.target.value as any)} className="p-2 border rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white">
+                     <input 
+                        id="gallery-search"
+                        name="gallery-search"
+                        aria-label="Søg i galleri"
+                        type="text" 
+                        placeholder="Søg..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        className="p-2 border rounded w-full md:w-64 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" 
+                    />
+                    <select 
+                        id="gallery-sort"
+                        name="gallery-sort"
+                        aria-label="Sorter galleri"
+                        value={sortOption} 
+                        onChange={(e) => setSortOption(e.target.value as any)} 
+                        className="p-2 border rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
+                    >
                         <option value="date_desc">Nyeste først</option>
                         <option value="date_asc">Ældste først</option>
                     </select>
@@ -143,7 +159,15 @@ export const GalleryManagement: React.FC = () => {
                 {filteredImages.map(img => (
                     <div key={img.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700">
                         <div className="absolute top-2 left-2 z-10">
-                            <input type="checkbox" checked={selectedImageIds.includes(img.id)} onChange={() => setSelectedImageIds(prev => prev.includes(img.id) ? prev.filter(id => id !== img.id) : [...prev, img.id])} className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                            <input 
+                                type="checkbox" 
+                                id={`gallery-select-${img.id}`}
+                                name={`gallery-select-${img.id}`}
+                                aria-label={`Vælg billede ${img.name}`}
+                                checked={selectedImageIds.includes(img.id)} 
+                                onChange={() => setSelectedImageIds(prev => prev.includes(img.id) ? prev.filter(id => id !== img.id) : [...prev, img.id])} 
+                                className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
+                            />
                         </div>
                         <button onClick={() => handleDelete(img.id)} className="absolute top-2 right-2 z-10 bg-white/80 p-1.5 rounded-full text-rose-500 hover:text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity"><TrashIcon /></button>
                         <div className="aspect-square overflow-hidden bg-slate-100 dark:bg-slate-700">

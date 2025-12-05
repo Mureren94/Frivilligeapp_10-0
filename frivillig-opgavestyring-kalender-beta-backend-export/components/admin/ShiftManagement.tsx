@@ -418,13 +418,23 @@ export const ShiftManagement: React.FC = () => {
                 <div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                         <input 
+                            id="shift-search"
+                            name="shift-search"
+                            aria-label="Søg efter vagter"
                             type="text"
                             value={shiftSearch}
                             onChange={e => setShiftSearch(e.target.value)}
                             placeholder="Søg på titel eller beskrivelse..."
                             className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
                         />
-                        <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                        <select 
+                            id="shift-month-filter" 
+                            name="shift-month-filter" 
+                            aria-label="Filtrer efter måned"
+                            value={selectedMonth} 
+                            onChange={e => setSelectedMonth(e.target.value)} 
+                            className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                        >
                             <option value="all">Alle Måneder</option>
                             {availableMonths.map(month => <option key={month} value={month}>{new Date(month + '-02').toLocaleString('da-DK', { month: 'long', year: 'numeric' })}</option>)}
                         </select>
@@ -438,6 +448,7 @@ export const ShiftManagement: React.FC = () => {
                         <input 
                             type="checkbox"
                             id="select-all-shifts"
+                            name="select-all-shifts"
                             checked={filteredAndSortedShifts.length > 0 && selectedShiftIds.length === filteredAndSortedShifts.length}
                             onChange={handleToggleSelectAll}
                             className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"
@@ -452,6 +463,9 @@ export const ShiftManagement: React.FC = () => {
                                     <div className="flex items-center gap-3 flex-grow">
                                         <input 
                                             type="checkbox"
+                                            id={`shift-select-${s.id}`}
+                                            name={`shift-select-${s.id}`}
+                                            aria-label={`Vælg vagt ${s.title}`}
                                             checked={selectedShiftIds.includes(s.id)}
                                             onChange={() => handleToggleSelectShift(s.id)}
                                             className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 flex-shrink-0"

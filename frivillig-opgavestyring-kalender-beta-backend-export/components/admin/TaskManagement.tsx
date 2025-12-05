@@ -98,7 +98,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
 
     return (
         <div className="p-4 border dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-700/50 flex items-start gap-4">
-            <input type="checkbox" checked={isSelected} onChange={onToggleSelect} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 mt-1 flex-shrink-0" />
+            <input id={`select-row-${task.id}`} name={`select-row-${task.id}`} aria-label="Vælg række" type="checkbox" checked={isSelected} onChange={onToggleSelect} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 mt-1 flex-shrink-0" />
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 w-full">
                 <div className="flex items-start gap-4 flex-grow">
                      <img src={imageUrl || `https://ui-avatars.com/api/?name=${task.title.replace(/\s/g, '+')}&background=random&size=64`} alt={task.title} className="w-16 h-16 rounded object-cover flex-shrink-0 bg-slate-200 dark:bg-slate-600" />
@@ -113,7 +113,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                             {creator && ` (Oprettet af: ${creator.name})`}
                         </span>
                         <div className="flex items-center gap-2 mt-2">
-                            <input type="file" id={`image-upload-${task.id}`} className="hidden" accept="image/*" onChange={handleImageChangeForTask} />
+                            <input type="file" id={`image-upload-${task.id}`} name={`image-upload-${task.id}`} className="hidden" accept="image/*" onChange={handleImageChangeForTask} />
                             <label htmlFor={`image-upload-${task.id}`} className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">Upload</label>
                             {task.image && (<button onClick={() => onUpdate(task.id, 'image', '')} className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-900/50 dark:hover:bg-rose-900 dark:text-rose-400 px-2 py-1 rounded">Fjern billede</button>)}
                         </div>
@@ -123,19 +123,21 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-0.5">Status</span>
                         <div className="h-9 flex items-center">
-                            <input type="checkbox" id={`completed-${task.id}`} checked={task.is_completed} onChange={e => onUpdate(task.id, 'is_completed', e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
+                            <input type="checkbox" id={`completed-${task.id}`} name={`completed-${task.id}`} checked={task.is_completed} onChange={e => onUpdate(task.id, 'is_completed', e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                             <label htmlFor={`completed-${task.id}`} className="ml-2 text-sm text-slate-900 dark:text-slate-300">Fuldført</label>
                         </div>
                     </div>
                     <div className="flex flex-col">
+                        <label htmlFor={`category-${task.id}`} className="sr-only">Kategori</label>
                         <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-0.5">Kategori</span>
-                        <select value={task.category} onChange={e => onUpdate(task.id, 'category', e.target.value)} className="h-9 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-sm dark:text-white">
+                        <select id={`category-${task.id}`} name={`category-${task.id}`} value={task.category} onChange={e => onUpdate(task.id, 'category', e.target.value)} className="h-9 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-sm dark:text-white">
                             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                     </div>
                     <div className="flex flex-col">
+                         <label htmlFor={`volunteers-${task.id}`} className="sr-only">Pladser</label>
                          <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-0.5">Pladser</span>
-                         <input type="number" value={task.volunteers_needed} onChange={e => onUpdate(task.id, 'volunteers_needed', parseInt(e.target.value))} className="h-9 w-20 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-white text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                         <input id={`volunteers-${task.id}`} name={`volunteers-${task.id}`} type="number" value={task.volunteers_needed} onChange={e => onUpdate(task.id, 'volunteers_needed', parseInt(e.target.value))} className="h-9 w-20 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-white text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     </div>
                     <div className="flex items-center gap-1 h-9">
                          <button onClick={() => onEdit(task)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-1" title="Rediger opgave"><EditIcon /></button>
@@ -424,14 +426,14 @@ export const TaskManagement: React.FC = () => {
                 {activeTab === 'tasks' && (
                     <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                            <input type="text" value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                            <select value={taskStatusFilter} onChange={e => setTaskStatusFilter(e.target.value as any)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Statusser</option><option value="active">Aktiv</option><option value="completed">Færdig</option></select>
-                            <select value={taskCategoryFilter} onChange={e => setTaskCategoryFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Kategorier</option>{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                            <input id="task-search" name="task-search" aria-label="Søg på titel" type="text" value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <select id="task-status" name="task-status" aria-label="Filtrer efter status" value={taskStatusFilter} onChange={e => setTaskStatusFilter(e.target.value as any)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Statusser</option><option value="active">Aktiv</option><option value="completed">Færdig</option></select>
+                            <select id="task-category" name="task-category" aria-label="Filtrer efter kategori" value={taskCategoryFilter} onChange={e => setTaskCategoryFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Kategorier</option>{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
                             {selectedTaskIds.length > 0 && (<div className="lg:col-span-3"><button onClick={() => handleBulkDelete(selectedTaskIds, 'task')} className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-700">Slet valgte ({selectedTaskIds.length})</button></div>)}
                         </div>
                         <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                            <input type="checkbox" checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} onChange={handleToggleSelectAllTasks} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
+                            <input id="select-all-tasks" name="select-all-tasks" type="checkbox" checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} onChange={handleToggleSelectAllTasks} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                            <label htmlFor="select-all-tasks" className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
                         </div>
                         <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                             {filteredTasks.map(task => <AdminTaskRow key={task.id} task={task} isSelected={selectedTaskIds.includes(task.id)} onToggleSelect={() => handleToggleSelectTask(task.id)} onUpdate={handleTaskUpdate} onDelete={handleDeleteTask} onEdit={setEditingTask} categories={categories} users={users} settings={settings} />)}
