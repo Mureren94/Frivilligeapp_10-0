@@ -1,4 +1,3 @@
-
 # Forbyd adgang til følsomme filer
 <Files "db.php">
     Require all denied
@@ -8,7 +7,10 @@
     Require all denied
 </Files>
 
-
+# NY: Beskyt konfigurationsfilen
+<Files "config.php">
+    Require all denied
+</Files>
 
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f

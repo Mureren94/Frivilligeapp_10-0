@@ -1,31 +1,69 @@
 <?php
-// Gemmer base64 billeder som filer
+// utils.php - SIKKER VERSION
+
+// Gemmer base64 billeder som filer med streng validering
 function saveBase64Image($base64String, $folder = 'uploads/') {
-    // Hvis mappen ikke findes, opret den
+    // Opret mappe hvis den mangler
     if (!file_exists($folder)) {
         mkdir($folder, 0777, true);
     }
 
-    // Hvis det ikke er base64 data (f.eks. en eksisterende sti), returner bare
+    // Hvis dataen ikke er en base64 streng (f.eks. en URL), returner den uændret
     if (!$base64String || strpos($base64String, 'data:image') === false) {
         return $base64String; 
     }
 
-    // Opdel data og decode
-    $image_parts = explode(";base64,", $base64String);
-    $image_type_aux = explode("image/", $image_parts[0]);
-    $image_type = $image_type_aux[1];
-    $image_base64 = base64_decode($image_parts[1]);
-    
-    // Generer unikt filnavn
-    $fileName = uniqid() . '.' . $image_type;
+    // 1. Rens og valider formatet (data:image/xyz;base64,...)
+    if (!preg_match('/^data:image\/(\w+);base64,/', $base64String, $type)) {
+        return null;
+    }
+
+    // 2. Decode selve dataen
+    $data = substr($base64String, strpos($base64String, ',') + 1);
+    $decodedData = base64_decode($data);
+
+    if ($decodedData === false) {
+        return null;
+    }
+
+    // 3. SIKKERHEDSTJEK: Brug 'finfo' til at tjekke filens reelle MIME-type (Magic Bytes)
+    // Stol ALDRIG på hvad browseren/brugeren siger filtypen er.
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->buffer($decodedData);
+
+    // Tilladte filtyper
+    $allowedTypes = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp'
+    ];
+
+    if (!isset($allowedTypes[$mimeType])) {
+        error_log("Sikkerhedsadvarsel: Forsøg på upload af ulovlig filtype: " . $mimeType);
+        return null;
+    }
+
+    // 4. SIKKERHEDSTJEK: Prøv at loade billedet med GD library
+    // Dette sikrer at filen faktisk er et gyldigt billede og ikke bare en fil med falsk header
+    $img = @imagecreatefromstring($decodedData);
+    if (!$img) {
+        error_log("Sikkerhedsadvarsel: Filen er ikke et gyldigt billede.");
+        return null;
+    }
+    imagedestroy($img); // Ryd op i hukommelsen
+
+    // 5. Generer filnavn og gem
+    $extension = $allowedTypes[$mimeType];
+    $fileName = uniqid() . '.' . $extension;
     $file = $folder . $fileName;
     
-    // Gem filen fysisk på disken
-    file_put_contents($file, $image_base64);
-    
-    // Returner sti relative til backend roden (f.eks. 'app/uploads/fil.jpg')
-    return 'app/' . $folder . $fileName;
+    if (file_put_contents($file, $decodedData)) {
+        // Returner sti relative til backend roden (vi beholder 'app/' præfixet for kompatibilitet)
+        return 'app/' . $folder . $fileName;
+    }
+
+    return null;
 }
 
 // Standard JSON response helper
@@ -37,11 +75,11 @@ function jsonResponse($data) {
 
 // Hent JSON body fra request
 function getJsonInput() {
-    return json_decode(file_get_contents('php://input'), true);
+    $content = file_get_contents('php://input');
+    return json_decode($content, true);
 }
 
-// Tjek om brugeren er logget ind
-session_start();
+// Auth check - Bemærk: session_start() er fjernet herfra, da den nu ligger i index.php
 function requireAuth() {
     if (!isset($_SESSION['user_id'])) {
         http_response_code(401);

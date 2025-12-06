@@ -1,33 +1,69 @@
 <?php
-// index.php - ENDELIG VERSION
+// index.php - SINGLE ENTRY POINT
 
-// CORS Headers (Tillad frontend at snakke med backend)
-header("Access-Control-Allow-Origin: https://api.voreskerne.com");
+// 1. Start session som det allerførste (før noget output sendes)
+if (session_status() === PHP_SESSION_NONE) {
+    // Sæt session cookie parametre for sikkerhed (valgfrit men anbefalet)
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax' // Eller 'None' hvis frontend og backend er på forskellige domæner i prod
+    ]);
+    session_start();
+}
+
+// 2. Dynamisk CORS (Tillad både localhost og produktion)
+$allowedOrigins = [
+    'http://localhost:3000',        // Lokal udvikling (Vite)
+    'http://127.0.0.1:3000',        // Alternativ lokal adresse
+    'https://api.voreskerne.com'    // Din produktions-URL
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Credentials: true");
+}
+
+// Tillad standard metoder og headers
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// Håndter preflight requests
+// Håndter preflight requests (OPTIONS) med det samme
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
 
+// 3. Inkluder afhængigheder
+// db.php henter nu selv config.php sikkert (som vi fiksede i sidste trin)
 require_once 'db.php';
 require_once 'utils.php';
 
-// Router logik
-$request = $_SERVER['REQUEST_URI'];
-$path = parse_url($request, PHP_URL_PATH);
+// 4. Robust Routing Logik
+$requestUri = $_SERVER['REQUEST_URI'];
+$scriptName = $_SERVER['SCRIPT_NAME'];
+$scriptDir = dirname($scriptName);
 
-// Fjern '/app' prefix hvis det findes (pga. .htaccess)
-if (strpos($path, '/app') === 0) {
-    $path = substr($path, 4); 
+// Hent kun stien (fjern query params som ?id=1)
+$path = parse_url($requestUri, PHP_URL_PATH);
+
+// Hvis API'et ligger i en undermappe (f.eks. /app eller /backend), fjern den del fra stien
+// Dette gør, at koden virker uanset om den ligger i roden eller en mappe
+if ($scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
+    $path = substr($path, strlen($scriptDir));
+}
+
+// Hvis stien er tom eller '/', sæt den til noget standard eller håndter det
+if ($path === '/' || $path === '') {
+    // Valgfrit: redirect eller vis status
 }
 
 // --- AUTHENTICATION ---
 
 if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = getJsonInput();
+    // Brug prepared statements for sikkerhed (allerede implementeret korrekt her)
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$input['email']]);
     $user = $stmt->fetch();
@@ -35,6 +71,7 @@ if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($input['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role_id'] = $user['role_id'];
+        // Fjern hash før vi sender user objektet tilbage
         unset($user['password_hash']);
         jsonResponse(['success' => true, 'user' => $user]);
     } else {
@@ -101,6 +138,8 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $gallery = $pdo->query("SELECT * FROM gallery_images")->fetchAll();
     foreach($gallery as &$g) {
         $g['tags'] = json_decode($g['tags']);
+        // OBS: Vi lader stien være relative her ('app/uploads/...')
+        // Frontendens getImageUrl funktion (som vi skal fixe om lidt) vil håndtere den fulde URL
         $g['data'] = $g['path']; 
     }
 
@@ -128,6 +167,7 @@ if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $imagePath = isset($data['image']) ? saveBase64Image($data['image']) : null;
     $sql = "INSERT INTO tasks (id, title, description, task_date, category, points, volunteers_needed, image, is_template, created_by, estimated_time, repeat_interval, repeat_frequency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $pdo->prepare($sql)->execute([$data['id'], $data['title'], $data['description'], $data['task_date'], $data['category'], $data['points'], $data['volunteers_needed'], $imagePath, $data['is_template'] ? 1 : 0, $_SESSION['user_id'], $data['estimated_time'], $data['repeat_interval'] ?? null, $data['repeat_frequency'] ?? null]);
+    // Returner den gemte sti
     $data['image'] = $imagePath;
     jsonResponse($data);
 }
@@ -224,11 +264,9 @@ if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
         $sql = "UPDATE shifts SET date=?, start_time=?, end_time=?, title=?, description=? WHERE id=?";
         $pdo->prepare($sql)->execute([$data['date'], $data['startTime'], $data['endTime'], $data['title'], $data['description'], $data['id']]);
         
-        // Opdater Roller (Simpel tilgang: Slet gamle, indsæt nye. Eller opdater eksisterende)
-        // Her opdaterer vi eksisterende eller indsætter nye
+        // Opdater Roller (Simpel tilgang: Opdater eksisterende eller indsæt nye)
         if (!empty($data['roles'])) {
             foreach ($data['roles'] as $role) {
-                // Tjek om rollen findes
                 $check = $pdo->prepare("SELECT id FROM shift_roles WHERE id = ?");
                 $check->execute([$role['id']]);
                 if ($check->rowCount() > 0) {
@@ -238,7 +276,6 @@ if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
                 }
             }
         }
-        // Vi håndterer sletning af roller i en separat logik eller ved at sammenligne ID'er, men for nu er dette nok til redigering.
         $pdo->commit();
         jsonResponse(['success' => true]);
     } catch (Exception $e) { $pdo->rollBack(); http_response_code(500); jsonResponse(['error' => $e->getMessage()]); }
@@ -264,9 +301,11 @@ if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
-    $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = NULL WHERE id = ?");
-    $stmt->execute([$data['shiftRoleId']]);
-    jsonResponse(['success' => true]);
+    // Tjek at brugeren ejer rollen før de kan forlade den (sikkerhed)
+    $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = NULL WHERE id = ? AND user_id = ?");
+    $stmt->execute([$data['shiftRoleId'], $_SESSION['user_id']]);
+    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
+    else { http_response_code(400); jsonResponse(['error' => 'Kunne ikke forlade vagt (måske ejer du den ikke)']); }
 }
 
 // --- USERS, ROLES, SETTINGS, GALLERY, ETC ---
@@ -302,6 +341,14 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     requireAuth();
     $data = getJsonInput();
     $id = $data['id'];
+    
+    // Sikkerhed: En bruger må kun opdatere sin egen profil, medmindre det er en admin
+    // Her antager vi at frontenden sender ID, men vi bør tjekke session ID
+    if ($id !== $_SESSION['user_id'] && $_SESSION['role_id'] !== 'superadmin' && $_SESSION['role_id'] !== 'admin') {
+         http_response_code(403);
+         jsonResponse(['error' => 'Ikke tilladt']);
+    }
+
     $fields = []; $params = [];
     if (isset($data['image']) && strpos($data['image'], 'data:image') !== false) {
         $fields[] = "image = ?"; $params[] = saveBase64Image($data['image']);
@@ -312,6 +359,13 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!empty($data['password'])) {
         $fields[] = "password_hash = ?"; $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
     }
+    
+    // Notification preferences update logic
+    if (isset($data['notification_preferences'])) {
+        $fields[] = "notification_preferences = ?";
+        $params[] = json_encode($data['notification_preferences']);
+    }
+
     if (!empty($fields)) {
         $params[] = $id;
         $pdo->prepare("UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
