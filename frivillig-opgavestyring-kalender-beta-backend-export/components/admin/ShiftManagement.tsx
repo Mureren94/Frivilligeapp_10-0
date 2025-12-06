@@ -83,25 +83,25 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ shift: initialShift, on
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex-1">
-                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                 <input type="date" value={shift.date} onChange={e => setShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                 <label htmlFor="edit-shift-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
+                                 <input id="edit-shift-date" name="date" type="date" value={shift.date} onChange={e => setShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
-                                <input type="time" value={shift.startTime || ''} onChange={e => setShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" aria-label="Starttid" />
+                                <label htmlFor="edit-shift-start" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
+                                <input id="edit-shift-start" name="startTime" type="time" value={shift.startTime || ''} onChange={e => setShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
-                                <input type="time" value={shift.endTime || ''} onChange={e => setShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" aria-label="Sluttid" />
+                                <label htmlFor="edit-shift-end" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
+                                <input id="edit-shift-end" name="endTime" type="time" value={shift.endTime || ''} onChange={e => setShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
-                            <input type="text" value={shift.title || ''} onChange={e => setShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <label htmlFor="edit-shift-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
+                            <input id="edit-shift-title" name="title" type="text" value={shift.title || ''} onChange={e => setShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                         </div>
                         <div>
-                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
-                             <textarea value={shift.description || ''} onChange={e => setShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                             <label htmlFor="edit-shift-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
+                             <textarea id="edit-shift-desc" name="description" value={shift.description || ''} onChange={e => setShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                         </div>
                     </div>
                 </div>
@@ -347,25 +347,25 @@ export const ShiftManagement: React.FC = () => {
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                <input type="date" value={newShift.date} onChange={e => setNewShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <label htmlFor="new-shift-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
+                                <input id="new-shift-date" name="date" type="date" value={newShift.date} onChange={e => setNewShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
                             </div>
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
-                                <input type="time" value={newShift.startTime} onChange={e => setNewShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <label htmlFor="new-shift-start" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
+                                <input id="new-shift-start" name="startTime" type="time" value={newShift.startTime} onChange={e => setNewShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
                             </div>
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
-                                <input type="time" value={newShift.endTime} onChange={e => setNewShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <label htmlFor="new-shift-end" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
+                                <input id="new-shift-end" name="endTime" type="time" value={newShift.endTime} onChange={e => setNewShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
-                            <input type="text" value={newShift.title} onChange={e => setNewShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            <label htmlFor="new-shift-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
+                            <input id="new-shift-title" name="title" type="text" value={newShift.title} onChange={e => setNewShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
-                            <textarea value={newShift.description} onChange={e => setNewShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
+                            <label htmlFor="new-shift-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
+                            <textarea id="new-shift-desc" name="description" value={newShift.description} onChange={e => setNewShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
                         </div>
                     </div>
                     <div className="mt-4">

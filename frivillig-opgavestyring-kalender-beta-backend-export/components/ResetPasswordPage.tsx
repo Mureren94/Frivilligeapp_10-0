@@ -37,9 +37,6 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onReset, t
     };
     
     if (success) {
-        // Since onResetSuccess now handles navigation, we can show a simpler message
-        // or let the App component handle the view change entirely.
-        // For a brief moment, we'll show a success state before the view transitions.
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 font-sans">
                 <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-slate-800 rounded-lg shadow-lg text-center">
@@ -67,6 +64,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onReset, t
                                 name="password"
                                 type="password"
                                 required
+                                autoComplete="new-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-700 rounded-t-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm"
@@ -80,6 +78,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onReset, t
                                 name="confirm-password"
                                 type="password"
                                 required
+                                autoComplete="new-password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-700 rounded-b-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm"
