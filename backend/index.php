@@ -1,69 +1,75 @@
 <?php
 // index.php - SINGLE ENTRY POINT
 
-// 1. Start session som det allerførste (før noget output sendes)
+// 1. Start session
 if (session_status() === PHP_SESSION_NONE) {
-    // Sæt session cookie parametre for sikkerhed (valgfrit men anbefalet)
     session_set_cookie_params([
         'httponly' => true,
-        'samesite' => 'Lax' // Eller 'None' hvis frontend og backend er på forskellige domæner i prod
+        'samesite' => 'Lax'
     ]);
     session_start();
 }
 
-// 2. Dynamisk CORS (Tillad både localhost og produktion)
+// 2. CORS (Tillad adgang fra frontend)
 $allowedOrigins = [
-    'http://localhost:3000',        // Lokal udvikling (Vite)
-    'http://127.0.0.1:3000',        // Alternativ lokal adresse
-    'https://api.voreskerne.com'    // Din produktions-URL
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://api.voreskerne.com' // Din frontend URL
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
 if (in_array($origin, $allowedOrigins)) {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
 }
 
-// Tillad standard metoder og headers
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// Håndter preflight requests (OPTIONS) med det samme
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit(0);
 }
 
-// 3. Inkluder afhængigheder
-// db.php henter nu selv config.php sikkert (som vi fiksede i sidste trin)
+// 3. Inkluder filer
 require_once 'db.php';
 require_once 'utils.php';
 
-// 4. Robust Routing Logik
-$requestUri = $_SERVER['REQUEST_URI'];
-$scriptName = $_SERVER['SCRIPT_NAME'];
-$scriptDir = dirname($scriptName);
+// 4. ROBUST ROUTING (FIXED)
+$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptName = $_SERVER['SCRIPT_NAME']; // F.eks. /app/index.php
+$scriptDir = dirname($scriptName);     // F.eks. /app
 
-// Hent kun stien (fjern query params som ?id=1)
-$path = parse_url($requestUri, PHP_URL_PATH);
+// Normaliser stier ved at fjerne trailing slashes for sammenligning
+$requestUri = rtrim($requestUri, '/');
+$scriptDir = rtrim($scriptDir, '/');
 
-// Hvis API'et ligger i en undermappe (f.eks. /app eller /backend), fjern den del fra stien
-// Dette gør, at koden virker uanset om den ligger i roden eller en mappe
-if ($scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
-    $path = substr($path, strlen($scriptDir));
+// Find stien relativt til app-mappen
+if (strpos($requestUri, $scriptDir) === 0) {
+    $path = substr($requestUri, strlen($scriptDir));
+} else {
+    $path = $requestUri;
 }
 
-// Hvis stien er tom eller '/', sæt den til noget standard eller håndter det
-if ($path === '/' || $path === '') {
-    // Valgfrit: redirect eller vis status
+// Hvis stien er tom (f.eks. ved kald til selve mappen), sæt den til /
+if (empty($path)) {
+    $path = '/';
 }
+
+// Sikr at path altid starter med /
+if ($path[0] !== '/') {
+    $path = '/' . $path;
+}
+
+// Debugging (hvis du får problemer, kan du udkommentere denne linje midlertidigt):
+// error_log("Request URI: $requestUri | Script Dir: $scriptDir | Calculated Path: $path");
+
+// --- API ENDPOINTS ---
 
 // --- AUTHENTICATION ---
 
 if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = getJsonInput();
-    // Brug prepared statements for sikkerhed (allerede implementeret korrekt her)
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$input['email']]);
     $user = $stmt->fetch();
@@ -71,7 +77,6 @@ if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($input['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role_id'] = $user['role_id'];
-        // Fjern hash før vi sender user objektet tilbage
         unset($user['password_hash']);
         jsonResponse(['success' => true, 'user' => $user]);
     } else {
@@ -85,13 +90,12 @@ if ($path === '/logout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     jsonResponse(['success' => true]);
 }
 
-// --- INIT DATA (Hent alt data ved opstart) ---
+// --- INIT DATA ---
 
 if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     requireAuth();
     $userId = $_SESSION['user_id'];
     
-    // Hent nuværende bruger
     $stmt = $pdo->prepare("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $currentUser = $stmt->fetch();
@@ -99,7 +103,6 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $currentUser['notification_preferences'] = json_decode($currentUser['notification_preferences']);
     }
 
-    // Hent alle lister
     $users = $pdo->query("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users")->fetchAll();
     foreach($users as &$u) $u['notification_preferences'] = json_decode($u['notification_preferences']);
     
@@ -110,7 +113,6 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $categories = $pdo->query("SELECT name FROM categories")->fetchAll(PDO::FETCH_COLUMN);
     $shiftRoleTypes = $pdo->query("SELECT name FROM shift_role_types")->fetchAll(PDO::FETCH_COLUMN);
     
-    // Settings
     $settings = $pdo->query("SELECT * FROM settings WHERE id = 1")->fetch();
     $settingsFrontend = [];
     if ($settings) {
@@ -138,8 +140,6 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $gallery = $pdo->query("SELECT * FROM gallery_images")->fetchAll();
     foreach($gallery as &$g) {
         $g['tags'] = json_decode($g['tags']);
-        // OBS: Vi lader stien være relative her ('app/uploads/...')
-        // Frontendens getImageUrl funktion (som vi skal fixe om lidt) vil håndtere den fulde URL
         $g['data'] = $g['path']; 
     }
 
@@ -159,7 +159,7 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-// --- TASKS (OPGAVER) ---
+// --- TASKS ---
 
 if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
@@ -167,7 +167,6 @@ if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $imagePath = isset($data['image']) ? saveBase64Image($data['image']) : null;
     $sql = "INSERT INTO tasks (id, title, description, task_date, category, points, volunteers_needed, image, is_template, created_by, estimated_time, repeat_interval, repeat_frequency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $pdo->prepare($sql)->execute([$data['id'], $data['title'], $data['description'], $data['task_date'], $data['category'], $data['points'], $data['volunteers_needed'], $imagePath, $data['is_template'] ? 1 : 0, $_SESSION['user_id'], $data['estimated_time'], $data['repeat_interval'] ?? null, $data['repeat_frequency'] ?? null]);
-    // Returner den gemte sti
     $data['image'] = $imagePath;
     jsonResponse($data);
 }
@@ -185,7 +184,7 @@ if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
         $params[] = $imagePath;
     }
     
-    $params[] = $data['id']; // WHERE id = ?
+    $params[] = $data['id'];
     
     $sql = "UPDATE tasks SET $fields WHERE id = ?";
     $pdo->prepare($sql)->execute($params);
@@ -229,19 +228,15 @@ if ($path === '/tasks/unregister' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) { $pdo->rollBack(); jsonResponse(['error' => $e->getMessage()]); }
 }
 
-// --- SHIFTS (VAGTER) ---
+// --- SHIFTS ---
 
 if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
-    
     $pdo->beginTransaction();
     try {
-        // Opret Vagt
         $sql = "INSERT INTO shifts (id, date, start_time, end_time, title, description) VALUES (?, ?, ?, ?, ?, ?)";
         $pdo->prepare($sql)->execute([$data['id'], $data['date'], $data['startTime'], $data['endTime'], $data['title'], $data['description']]);
-        
-        // Opret Roller
         if (!empty($data['roles'])) {
             $roleSql = "INSERT INTO shift_roles (id, shift_id, user_id, role_name) VALUES (?, ?, ?, ?)";
             $roleStmt = $pdo->prepare($roleSql);
@@ -257,14 +252,10 @@ if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     requireAuth();
     $data = getJsonInput();
-    
     $pdo->beginTransaction();
     try {
-        // Opdater Vagt
         $sql = "UPDATE shifts SET date=?, start_time=?, end_time=?, title=?, description=? WHERE id=?";
         $pdo->prepare($sql)->execute([$data['date'], $data['startTime'], $data['endTime'], $data['title'], $data['description'], $data['id']]);
-        
-        // Opdater Roller (Simpel tilgang: Opdater eksisterende eller indsæt nye)
         if (!empty($data['roles'])) {
             foreach ($data['roles'] as $role) {
                 $check = $pdo->prepare("SELECT id FROM shift_roles WHERE id = ?");
@@ -301,23 +292,20 @@ if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
-    // Tjek at brugeren ejer rollen før de kan forlade den (sikkerhed)
     $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = NULL WHERE id = ? AND user_id = ?");
     $stmt->execute([$data['shiftRoleId'], $_SESSION['user_id']]);
     if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
-    else { http_response_code(400); jsonResponse(['error' => 'Kunne ikke forlade vagt (måske ejer du den ikke)']); }
+    else { http_response_code(400); jsonResponse(['error' => 'Kunne ikke forlade vagt']); }
 }
 
-// --- USERS, ROLES, SETTINGS, GALLERY, ETC ---
+// --- USERS, ROLES, ETC ---
 
 if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
     $passwordHash = !empty($data['password']) ? password_hash($data['password'], PASSWORD_DEFAULT) : password_hash(uniqid(), PASSWORD_DEFAULT);
-    
     $check = $pdo->prepare("SELECT id FROM users WHERE id = ?");
     $check->execute([$data['id']]);
-    
     if ($check->rowCount() > 0) {
         $sql = "UPDATE users SET name = ?, email = ?, role_id = ?, points = ? WHERE id = ?";
         $pdo->prepare($sql)->execute([$data['name'], $data['email'], $data['role'], $data['points'], $data['id']]);
@@ -341,14 +329,10 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     requireAuth();
     $data = getJsonInput();
     $id = $data['id'];
-    
-    // Sikkerhed: En bruger må kun opdatere sin egen profil, medmindre det er en admin
-    // Her antager vi at frontenden sender ID, men vi bør tjekke session ID
     if ($id !== $_SESSION['user_id'] && $_SESSION['role_id'] !== 'superadmin' && $_SESSION['role_id'] !== 'admin') {
          http_response_code(403);
          jsonResponse(['error' => 'Ikke tilladt']);
     }
-
     $fields = []; $params = [];
     if (isset($data['image']) && strpos($data['image'], 'data:image') !== false) {
         $fields[] = "image = ?"; $params[] = saveBase64Image($data['image']);
@@ -359,13 +343,10 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!empty($data['password'])) {
         $fields[] = "password_hash = ?"; $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
     }
-    
-    // Notification preferences update logic
     if (isset($data['notification_preferences'])) {
         $fields[] = "notification_preferences = ?";
         $params[] = json_encode($data['notification_preferences']);
     }
-
     if (!empty($fields)) {
         $params[] = $id;
         $pdo->prepare("UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
@@ -398,10 +379,8 @@ if ($path === '/settings' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     $smtp = json_encode($data['smtp']);
     $defaults = json_encode($data['notification_role_defaults']);
     $templates = json_encode($data['email_templates']);
-    
     $siteIcon = isset($data['siteIcon']) ? saveBase64Image($data['siteIcon']) : null;
     $defaultTaskImage = isset($data['defaultTaskImage']) ? saveBase64Image($data['defaultTaskImage']) : null;
-
     $sql = "UPDATE settings SET site_name = ?, site_icon = IF(? IS NOT NULL, ?, site_icon), site_name_color = ?, default_task_image = IF(? IS NOT NULL, ?, default_task_image), point_goal = ?, enable_points = ?, min_task_points = ?, max_task_points = ?, menu_visibility = ?, smtp_config = ?, notification_role_defaults = ?, email_templates = ? WHERE id = 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$data['siteName'], $siteIcon, $siteIcon, $data['siteNameColor'], $defaultTaskImage, $defaultTaskImage, $data['pointGoal'], $data['enablePoints'] ? 1 : 0, $data['minTaskPoints'], $data['maxTaskPoints'], $menuVisibility, $smtp, $defaults, $templates]);
@@ -446,5 +425,5 @@ if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
 }
 
 http_response_code(404);
-echo json_encode(['error' => 'Not found']);
+echo json_encode(['error' => 'Endpoint not found', 'path' => $path]);
 ?>

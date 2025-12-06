@@ -1,4 +1,4 @@
-# Forbyd adgang til følsomme filer
+# Beskyt følsomme filer
 <Files "db.php">
     Require all denied
 </Files>
@@ -7,12 +7,16 @@
     Require all denied
 </Files>
 
-# NY: Beskyt konfigurationsfilen
 <Files "config.php">
     Require all denied
 </Files>
 
 RewriteEngine On
+
+# VIGTIGT: Fortæller serveren, at vi arbejder i denne undermappe
+RewriteBase /app/
+
+# Hvis filen eller mappen ikke findes fysisk, send alt til index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

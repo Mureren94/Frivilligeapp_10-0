@@ -1,13 +1,9 @@
-// services/api.ts - PRODUCTION READY
+// services/api.ts - FIXED VERSION
 
-// 1. Konfiguration af URLs
-// SERVER_URL: Roden af dit domæne (bruges til at bygge stier til billeder)
+// URL'en skal være roden af din backend-mappe
+// VIGTIGT: Ingen skråstreg til sidst.
+const API_BASE_URL = 'https://api.voreskerne.com/app'; 
 const SERVER_URL = 'https://api.voreskerne.com';
-
-// API_BASE_URL: Hvor din index.php lytter (bruges til data-kald)
-// Vi fjerner '/app' herfra, da din nye backend/index.php selv håndterer routing smart.
-// Hvis din backend ligger i roden, er dette fint. Hvis den ligger i en mappe, tilføj den her.
-const API_BASE_URL = 'https://api.voreskerne.com'; 
 
 async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const defaultOptions: RequestInit = {
@@ -20,33 +16,66 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
         credentials: 'include', 
     };
     
-    // Vi sikrer os at URL'en starter med en skråstreg hvis den mangler
-    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    // Sikrer at vi kun har én skråstreg mellem base og endpoint
+    const endpoint = url.startsWith('/') ? url : `/${url}`;
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+
+    const response = await fetch(fullUrl, defaultOptions);
     
-    const response = await fetch(`${API_BASE_URL}${normalizedUrl}`, defaultOptions);
-    
-    // Håndter HTTP fejl (f.eks. 401 Unauthorized eller 500 Server Error)
     if (!response.ok) {
         let errorMessage = `HTTP Error ${response.status}`;
         try {
-            // Prøv at læse fejlbeskeden fra PHP backenden (jsonResponse(['error' => '...']))
-            const errorData = await response.json();
-            if (errorData.error) {
-                errorMessage = errorData.error;
+            const text = await response.text(); // Læs som tekst først
+            try {
+                const errorData = JSON.parse(text); // Prøv at parse som JSON
+                if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+            } catch {
+                // Hvis det er HTML (f.eks. en 404 side fra serveren)
+                if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
+                    console.error("Serveren sendte HTML fejl:", text);
+                    errorMessage = `Serverfejl: Kunne ikke nå ${fullUrl} (Serveren svarede med HTML i stedet for data)`;
+                } else {
+                    errorMessage = text || errorMessage;
+                }
             }
         } catch (e) {
-            // Hvis svaret ikke er JSON (f.eks. en fatal PHP error tekst), brug standard teksten
+            // Ignorer læsefejl
         }
         throw new Error(errorMessage);
     }
     
-    // Hvis status er 204 No Content (bruges nogle gange ved sletning), returner null
+    // Håndter "No Content" svar (f.eks. ved sletning)
     if (response.status === 204) {
         return {} as T;
     }
 
     return response.json();
 }
+
+// Helper: Hent URL til billede
+// Denne funktion sikrer, at billedstier fra databasen (f.eks. 'app/uploads/img.jpg')
+// bliver til gyldige URLs (f.eks. 'https://api.voreskerne.com/app/uploads/img.jpg')
+const getImageUrl = (path: string | undefined) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    
+    // Vi renser stien for at undgå at stien bliver '.../app/app/...'
+    let cleanPath = path;
+    
+    // Hvis stien i databasen allerede starter med 'app/', fjerner vi det, 
+    // fordi API_BASE_URL allerede indeholder '/app'
+    if (path.startsWith('app/')) {
+        cleanPath = path.substring(4); 
+    } else if (path.startsWith('/app/')) {
+        cleanPath = path.substring(5);
+    } else if (path.startsWith('/')) {
+        cleanPath = path.substring(1);
+    }
+    
+    return `${API_BASE_URL}/${cleanPath}`;
+};
 
 export const api = {
     // --- AUTH ---
@@ -56,7 +85,6 @@ export const api = {
 
     // --- TASKS ---
     createTask: (task: any) => fetchJson('/tasks', { method: 'POST', body: JSON.stringify(task) }),
-    // Vi bruger PUT til opdatering af opgaver (inkl. billeder)
     updateTask: (task: any) => fetchJson('/tasks', { method: 'PUT', body: JSON.stringify(task) }),
     deleteTask: (id: string) => fetchJson('/tasks', { method: 'DELETE', body: JSON.stringify({ id }) }),
     signUpTask: (taskId: string) => fetchJson('/tasks/signup', { method: 'POST', body: JSON.stringify({ taskId }) }),
@@ -91,21 +119,5 @@ export const api = {
     uploadGalleryImage: (image: any) => fetchJson('/gallery', { method: 'POST', body: JSON.stringify(image) }),
     deleteGalleryImage: (id: string) => fetchJson('/gallery', { method: 'DELETE', body: JSON.stringify({ id }) }),
     
-    // --- HELPER: Image URL ---
-    getImageUrl: (path: string | undefined) => {
-        if (!path) return '';
-        
-        // Hvis det allerede er en fuld URL (f.eks. fra en ekstern kilde eller base64 preview), brug den
-        if (path.startsWith('http') || path.startsWith('data:')) return path;
-        
-        // Backend gemmer stien som 'app/uploads/filnavn.jpg'
-        // Vi skal sikre os, at vi ikke sætter skråstreger forkert sammen
-        
-        // Fjern evt. ledende skråstreg fra stien
-        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-        
-        // Byg den fulde URL. 
-        // Eksempel resultat: https://api.voreskerne.com/app/uploads/billede.jpg
-        return `${SERVER_URL}/${cleanPath}`;
-    }
+    getImageUrl
 };
