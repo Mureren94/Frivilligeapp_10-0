@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import type { Task, User, AppSettings } from '../../types';
-import { useData } from '../../contexts/DataContext';
-import { fileToBase64, generateId } from '../../utils';
-import { TrashIcon, EditIcon, TemplateIcon } from '../icons';
+import { useData } from '../../contexts/DataContext'; // Rettet sti
+import { fileToBase64, generateId } from '../../utils'; // Rettet sti
+import { TrashIcon, EditIcon, TemplateIcon } from '../icons'; // Rettet sti
 import toast from 'react-hot-toast';
 
 // --- Helper Component: Image Selector ---
 interface TaskImageSelectorProps {
     currentImage: string | undefined;
     onImageChange: (base64: string) => void;
+    idPrefix?: string; // Tilføjet for unikke IDs
 }
 
-const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange }) => {
+const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange, idPrefix = 'task' }) => {
     const { tasks, settings, galleryImages } = useData();
     const [mode, setMode] = useState<'upload' | 'gallery'>('upload');
 
@@ -50,7 +51,8 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
                 <div className="flex-grow">
                     {mode === 'upload' ? (
                         <div>
-                             <input type="file" accept="image/*" onChange={handleFileUpload} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900" />
+                             <label htmlFor={`${idPrefix}-image-upload`} className="sr-only">Upload billede</label>
+                             <input id={`${idPrefix}-image-upload`} name={`${idPrefix}-image-upload`} type="file" accept="image/*" onChange={handleFileUpload} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900" />
                             <p className="text-xs text-slate-500 mt-2">Understøtter JPG, PNG, GIF, WebP.</p>
                         </div>
                     ) : (
@@ -68,7 +70,7 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
     );
 };
 
-// --- Helper Component: AdminTaskRow (Nu trukket ud!) ---
+// --- Helper Component: AdminTaskRow ---
 interface AdminTaskRowProps {
     task: Task;
     isSelected: boolean;
@@ -113,7 +115,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                             {creator && ` (Oprettet af: ${creator.name})`}
                         </span>
                         <div className="flex items-center gap-2 mt-2">
-                            <input type="file" id={`image-upload-${task.id}`} name={`image-upload-${task.id}`} className="hidden" accept="image/*" onChange={handleImageChangeForTask} />
+                            <input type="file" id={`image-upload-${task.id}`} name={`image-upload-row-${task.id}`} className="hidden" accept="image/*" onChange={handleImageChangeForTask} />
                             <label htmlFor={`image-upload-${task.id}`} className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">Upload</label>
                             {task.image && (<button onClick={() => onUpdate(task.id, 'image', '')} className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-900/50 dark:hover:bg-rose-900 dark:text-rose-400 px-2 py-1 rounded">Fjern billede</button>)}
                         </div>
@@ -223,22 +225,51 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
                     <div className="p-6 overflow-y-auto flex-1">
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Rediger Opgave</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label><input name="title" value={editedTask.title} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label><input type="datetime-local" value={formattedDate} onChange={handleDateChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label><textarea name="description" value={editedTask.description} onChange={handleChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label><TaskImageSelector currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} /></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label><select name="category" value={editedTask.category} onChange={handleChange} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
-                            {settings.enablePoints !== false && (<div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label><input name="points" type="number" min={minPoints} max={maxPoints} value={editedTask.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label><input name="volunteers_needed" type="number" value={editedTask.volunteers_needed} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label><input name="estimated_time" type="number" value={editedTask.estimated_time || ''} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
+                             <div>
+                                <label htmlFor="edit-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label>
+                                <input id="edit-title" name="title" value={editedTask.title} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                             </div>
+                            <div>
+                                <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
+                                <input id="edit-date" type="datetime-local" name="task_date_local" value={formattedDate} onChange={handleDateChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label>
+                                <label htmlFor="edit-description" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label>
+                                <textarea id="edit-description" name="description" value={editedTask.description} onChange={handleChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
+                                <TaskImageSelector idPrefix="edit-task" currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
+                                <select id="edit-category" name="category" value={editedTask.category} onChange={handleChange} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                            </div>
+                            {settings.enablePoints !== false && (
+                                <div>
+                                    <label htmlFor="edit-points" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label>
+                                    <input id="edit-points" name="points" type="number" min={minPoints} max={maxPoints} value={editedTask.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                </div>
+                            )}
+                            <div>
+                                <label htmlFor="edit-volunteers" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label>
+                                <input id="edit-volunteers" name="volunteers_needed" type="number" value={editedTask.volunteers_needed} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div>
+                                <label htmlFor="edit-time" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label>
+                                <input id="edit-time" name="estimated_time" type="number" value={editedTask.estimated_time || ''} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="edit-repeat-interval" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label>
                                 <div className="flex items-center gap-2">
-                                    <select name="repeat_interval" value={editedTask.repeat_interval || ''} onChange={handleChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>
-                                    {editedTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><input type="number" name="repeat_frequency" value={editedTask.repeat_frequency || 1} onChange={handleChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
+                                    <select id="edit-repeat-interval" name="repeat_interval" value={editedTask.repeat_interval || ''} onChange={handleChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>
+                                    {editedTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="edit-repeat-freq" className="sr-only">Frekvens</label><input id="edit-repeat-freq" name="repeat_frequency" type="number" value={editedTask.repeat_frequency || 1} onChange={handleChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
                                 </div>
                             </div>
-                             <div className="md:col-span-2 flex items-center"><input type="checkbox" id="edit-isTemplate" name="is_template" checked={!!editedTask.is_template} onChange={handleChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/><label htmlFor="edit-isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label></div>
+                             <div className="md:col-span-2 flex items-center">
+                                <input type="checkbox" id="edit-isTemplate" name="is_template" checked={!!editedTask.is_template} onChange={handleChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                                <label htmlFor="edit-isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label>
+                            </div>
                         </div>
                     </div>
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end items-center gap-3 border-t dark:border-slate-700 mt-auto flex-shrink-0">
@@ -267,6 +298,7 @@ export const TaskManagement: React.FC = () => {
     const [newCategory, setNewCategory] = useState('');
     const handleAddCategory = () => {
         if (newCategory && !categories.includes(newCategory)) {
+            // NOTE: I en rigtig backend-opsætning ville dette kalde en API service
             setCategories(prev => [...prev, newCategory].sort());
             setNewCategory('');
             toast.success(`Kategorien "${newCategory}" er tilføjet.`);
@@ -274,6 +306,7 @@ export const TaskManagement: React.FC = () => {
     };
     const handleDeleteCategory = (catToDelete: string) => {
         if (window.confirm(`Er du sikker på, du vil slette kategorien "${catToDelete}"?`)) {
+            // NOTE: I en rigtig backend-opsætning ville dette kalde en API service
             setCategories(prev => prev.filter(c => c !== catToDelete));
             toast.success(`Kategorien "${catToDelete}" er slettet.`);
         }
@@ -401,16 +434,51 @@ export const TaskManagement: React.FC = () => {
                     <div>
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Opret ny Opgave</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label><input name="title" value={newTask.title} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label><input type="datetime-local" name="task_date" value={newTask.task_date} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label><textarea name="description" value={newTask.description} onChange={handleNewTaskChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label><TaskImageSelector currentImage={newTask.image} onImageChange={(base64) => setNewTask(prev => ({ ...prev, image: base64 }))} /></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label><select name="category" value={newTask.category} onChange={handleNewTaskChange} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
-                            {settings.enablePoints !== false && (<div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label><input name="points" type="number" min={minPoints} max={maxPoints} value={newTask.points} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label><input name="volunteers_needed" type="number" value={newTask.volunteers_needed} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label><input name="estimated_time" type="number" value={newTask.estimated_time} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label><div className="flex items-center gap-2"><select name="repeat_interval" value={newTask.repeat_interval || ''} onChange={handleNewTaskChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>{newTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><input type="number" name="repeat_frequency" value={newTask.repeat_frequency || 1} onChange={handleNewTaskChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}</div></div>
-                            <div className="md:col-span-2 flex items-center"><input type="checkbox" id="isTemplate" name="is_template" checked={!!newTask.is_template} onChange={handleNewTaskChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/><label htmlFor="isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label></div>
+                            <div>
+                                <label htmlFor="create-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label>
+                                <input id="create-title" name="title" value={newTask.title} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div>
+                                <label htmlFor="create-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
+                                <input id="create-date" type="datetime-local" name="task_date" value={newTask.task_date} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="create-description" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label>
+                                <textarea id="create-description" name="description" value={newTask.description} onChange={handleNewTaskChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
+                                <TaskImageSelector idPrefix="create-task" currentImage={newTask.image} onImageChange={(base64) => setNewTask(prev => ({ ...prev, image: base64 }))} />
+                            </div>
+                            <div>
+                                <label htmlFor="create-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
+                                <select id="create-category" name="category" value={newTask.category} onChange={handleNewTaskChange} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                            </div>
+                            {settings.enablePoints !== false && (
+                                <div>
+                                    <label htmlFor="create-points" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label>
+                                    <input id="create-points" name="points" type="number" min={minPoints} max={maxPoints} value={newTask.points} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                </div>
+                            )}
+                            <div>
+                                <label htmlFor="create-volunteers" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label>
+                                <input id="create-volunteers" name="volunteers_needed" type="number" value={newTask.volunteers_needed} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div>
+                                <label htmlFor="create-time" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label>
+                                <input id="create-time" name="estimated_time" type="number" value={newTask.estimated_time} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="create-repeat-interval" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label>
+                                <div className="flex items-center gap-2">
+                                    <select id="create-repeat-interval" name="repeat_interval" value={newTask.repeat_interval || ''} onChange={handleNewTaskChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>
+                                    {newTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="create-repeat-freq" className="sr-only">Frekvens</label><input id="create-repeat-freq" name="repeat_frequency" type="number" value={newTask.repeat_frequency || 1} onChange={handleNewTaskChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 flex items-center">
+                                <input type="checkbox" id="isTemplate" name="is_template" checked={!!newTask.is_template} onChange={handleNewTaskChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                                <label htmlFor="isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label>
+                            </div>
                         </div>
                         {newTaskError && <p className="text-center text-sm text-rose-600 mt-2">{newTaskError}</p>}
                         <button onClick={handleAddTask} className="mt-4 w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Opret Opgave</button>
@@ -419,15 +487,22 @@ export const TaskManagement: React.FC = () => {
                 {activeTab === 'categories' && (
                      <div>
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Administrer Kategorier</h3>
-                        <div className="flex gap-2 mb-4"><input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Ny kategori..." className="flex-grow border border-slate-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" /><button onClick={handleAddCategory} className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700">Tilføj</button></div>
+                        <div className="flex gap-2 mb-4">
+                            <label htmlFor="new-category-input" className="sr-only">Ny kategori</label>
+                            <input id="new-category-input" name="new-category" type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Ny kategori..." className="flex-grow border border-slate-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" />
+                            <button onClick={handleAddCategory} className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700">Tilføj</button>
+                        </div>
                         <div className="flex flex-wrap gap-2">{categories.map(cat => (<span key={cat} className="flex items-center bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-medium pl-3 pr-1 py-1 rounded-full">{cat}<button onClick={() => handleDeleteCategory(cat)} className="ml-2 text-rose-500 hover:text-rose-700"><TrashIcon /></button></span>))}</div>
                     </div>
                 )}
                 {activeTab === 'tasks' && (
                     <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
+                            <label htmlFor="task-search" className="sr-only">Søg på titel</label>
                             <input id="task-search" name="task-search" aria-label="Søg på titel" type="text" value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <label htmlFor="task-status" className="sr-only">Filtrer efter status</label>
                             <select id="task-status" name="task-status" aria-label="Filtrer efter status" value={taskStatusFilter} onChange={e => setTaskStatusFilter(e.target.value as any)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Statusser</option><option value="active">Aktiv</option><option value="completed">Færdig</option></select>
+                            <label htmlFor="task-category" className="sr-only">Filtrer efter kategori</label>
                             <select id="task-category" name="task-category" aria-label="Filtrer efter kategori" value={taskCategoryFilter} onChange={e => setTaskCategoryFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Kategorier</option>{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
                             {selectedTaskIds.length > 0 && (<div className="lg:col-span-3"><button onClick={() => handleBulkDelete(selectedTaskIds, 'task')} className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-700">Slet valgte ({selectedTaskIds.length})</button></div>)}
                         </div>
@@ -443,13 +518,15 @@ export const TaskManagement: React.FC = () => {
                  {activeTab === 'templates' && (
                      <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                            <input type="text" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
-                            <select value={templateCategoryFilter} onChange={e => setTemplateCategoryFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Kategorier</option>{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
+                            <label htmlFor="template-search" className="sr-only">Søg skabeloner</label>
+                            <input id="template-search" name="template-search" type="text" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <label htmlFor="template-category-filter" className="sr-only">Filtrer skabeloner efter kategori</label>
+                            <select id="template-category-filter" name="template-category-filter" aria-label="Filtrer skabeloner efter kategori" value={templateCategoryFilter} onChange={e => setTemplateCategoryFilter(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="all">Alle Kategorier</option>{categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select>
                             {selectedTemplateIds.length > 0 && (<div className="lg:col-span-3"><button onClick={() => handleBulkDelete(selectedTemplateIds, 'template')} className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-700">Slet valgte ({selectedTemplateIds.length})</button></div>)}
                         </div>
                         <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                            <input type="checkbox" checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length} onChange={handleToggleSelectAllTemplates} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
+                            <input id="select-all-templates" name="select-all-templates" type="checkbox" checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length} onChange={handleToggleSelectAllTemplates} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                            <label htmlFor="select-all-templates" className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
                         </div>
                         <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                             {filteredTemplates.map(task => <AdminTaskRow key={task.id} task={task} isSelected={selectedTemplateIds.includes(task.id)} onToggleSelect={() => handleToggleSelectTemplate(task.id)} onUpdate={handleTaskUpdate} onDelete={handleDeleteTask} onEdit={setEditingTask} categories={categories} users={users} settings={settings} />)}
