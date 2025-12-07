@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { Task, User, AppSettings } from '../../types';
-import { useData } from '../../contexts/DataContext'; // Rettet sti
-import { fileToBase64, generateId } from '../../utils'; // Rettet sti
-import { TrashIcon, EditIcon, TemplateIcon } from '../icons'; // Rettet sti
+import { useData } from '../../contexts/DataContext';
+import { fileToBase64, generateId } from '../../utils';
+import { TrashIcon, EditIcon, TemplateIcon } from '../icons';
 import toast from 'react-hot-toast';
 
 // --- Helper Component: Image Selector ---
@@ -51,8 +51,11 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
                 <div className="flex-grow">
                     {mode === 'upload' ? (
                         <div>
-                             <label htmlFor={`${idPrefix}-image-upload`} className="sr-only">Upload billede</label>
-                             <input id={`${idPrefix}-image-upload`} name={`${idPrefix}-image-upload`} type="file" accept="image/*" onChange={handleFileUpload} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900" />
+                             {/* FIX: Input nestet i label fjerner behovet for ID/for og løser tilgængelighedsfejl */}
+                             <label className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900 cursor-pointer">
+                                 <span className="sr-only">Vælg billede til upload</span>
+                                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                             </label>
                             <p className="text-xs text-slate-500 mt-2">Understøtter JPG, PNG, GIF, WebP.</p>
                         </div>
                     ) : (
@@ -115,8 +118,11 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                             {creator && ` (Oprettet af: ${creator.name})`}
                         </span>
                         <div className="flex items-center gap-2 mt-2">
-                            <input type="file" id={`image-upload-${task.id}`} name={`image-upload-row-${task.id}`} className="hidden" accept="image/*" onChange={handleImageChangeForTask} />
-                            <label htmlFor={`image-upload-${task.id}`} className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">Upload</label>
+                            {/* FIX: Også her bruger vi label-nesting for at undgå ID-konflikter og manglende labels */}
+                            <label className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">
+                                Upload
+                                <input type="file" accept="image/*" onChange={handleImageChangeForTask} className="hidden" />
+                            </label>
                             {task.image && (<button onClick={() => onUpdate(task.id, 'image', '')} className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-900/50 dark:hover:bg-rose-900 dark:text-rose-400 px-2 py-1 rounded">Fjern billede</button>)}
                         </div>
                     </div>
