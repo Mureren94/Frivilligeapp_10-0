@@ -1,18 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Task, User, AppSettings } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { fileToBase64, generateId } from '../../utils';
 import { TrashIcon, EditIcon, TemplateIcon } from '../icons';
+import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 
 // --- Helper Component: Image Selector ---
 interface TaskImageSelectorProps {
     currentImage: string | undefined;
     onImageChange: (base64: string) => void;
-    idPrefix?: string; // Tilføjet for unikke IDs
 }
 
-const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange, idPrefix = 'task' }) => {
+const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange }) => {
     const { tasks, settings, galleryImages } = useData();
     const [mode, setMode] = useState<'upload' | 'gallery'>('upload');
 
@@ -42,7 +42,8 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
             <div className="flex items-start gap-4">
                 {currentImage ? (
                     <div className="relative group flex-shrink-0">
-                        <img src={currentImage} alt="Current" className="w-24 h-24 rounded object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
+                        {/* Vi bruger api.getImageUrl her for at sikre at billedet vises korrekt */}
+                        <img src={api.getImageUrl(currentImage)} alt="Current" className="w-24 h-24 rounded object-cover ring-1 ring-slate-200 dark:ring-slate-700" />
                         <button type="button" onClick={() => onImageChange('')} className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
                     </div>
                 ) : (
@@ -51,9 +52,9 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
                 <div className="flex-grow">
                     {mode === 'upload' ? (
                         <div>
-                             {/* FIX: Input nestet i label fjerner behovet for ID/for og løser tilgængelighedsfejl */}
-                             <label className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900 cursor-pointer">
-                                 <span className="sr-only">Vælg billede til upload</span>
+                             {/* LØSNING PÅ "NO LABEL" FEJL: Input er nestet i label */}
+                             <label className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900 cursor-pointer border border-dashed border-slate-300 dark:border-slate-600 rounded-md p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                 <span className="block mb-1">Klik for at vælge billede</span>
                                  <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                              </label>
                             <p className="text-xs text-slate-500 mt-2">Understøtter JPG, PNG, GIF, WebP.</p>
@@ -62,7 +63,7 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
                         <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1">
                             {allImages.map((img, idx) => (
                                 <button key={idx} type="button" onClick={() => onImageChange(img)} className="relative aspect-square rounded overflow-hidden border-2 border-transparent hover:border-emerald-500 focus:outline-none focus:border-emerald-500 transition-all">
-                                    <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                                    <img src={api.getImageUrl(img)} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
                                 </button>
                             ))}
                         </div>
@@ -106,7 +107,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
             <input id={`select-row-${task.id}`} name={`select-row-${task.id}`} aria-label="Vælg række" type="checkbox" checked={isSelected} onChange={onToggleSelect} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 mt-1 flex-shrink-0" />
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 w-full">
                 <div className="flex items-start gap-4 flex-grow">
-                     <img src={imageUrl || `https://ui-avatars.com/api/?name=${task.title.replace(/\s/g, '+')}&background=random&size=64`} alt={task.title} className="w-16 h-16 rounded object-cover flex-shrink-0 bg-slate-200 dark:bg-slate-600" />
+                     <img src={api.getImageUrl(imageUrl) || `https://ui-avatars.com/api/?name=${task.title.replace(/\s/g, '+')}&background=random&size=64`} alt={task.title} className="w-16 h-16 rounded object-cover flex-shrink-0 bg-slate-200 dark:bg-slate-600" />
                     <div className="flex-grow">
                         <p className="font-medium text-slate-800 dark:text-slate-100 flex items-center gap-2">{task.title}{task.is_template && <TemplateIcon />}</p>
                         <span className="block text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -118,7 +119,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                             {creator && ` (Oprettet af: ${creator.name})`}
                         </span>
                         <div className="flex items-center gap-2 mt-2">
-                            {/* FIX: Også her bruger vi label-nesting for at undgå ID-konflikter og manglende labels */}
+                            {/* Også her bruger vi label nesting */}
                             <label className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">
                                 Upload
                                 <input type="file" accept="image/*" onChange={handleImageChangeForTask} className="hidden" />
@@ -245,7 +246,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
-                                <TaskImageSelector idPrefix="edit-task" currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
+                                <TaskImageSelector currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
                             </div>
                             <div>
                                 <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
@@ -302,19 +303,29 @@ export const TaskManagement: React.FC = () => {
 
     // --- Kategori-håndtering ---
     const [newCategory, setNewCategory] = useState('');
-    const handleAddCategory = () => {
+    const handleAddCategory = async () => {
         if (newCategory && !categories.includes(newCategory)) {
-            // NOTE: I en rigtig backend-opsætning ville dette kalde en API service
-            setCategories(prev => [...prev, newCategory].sort());
-            setNewCategory('');
-            toast.success(`Kategorien "${newCategory}" er tilføjet.`);
+            // FIX: Nu kalder vi backend API'et
+            try {
+                await api.addCategory(newCategory);
+                setCategories(prev => [...prev, newCategory].sort());
+                setNewCategory('');
+                toast.success(`Kategorien "${newCategory}" er tilføjet.`);
+            } catch (e) {
+                toast.error("Kunne ikke gemme kategorien.");
+            }
         }
     };
-    const handleDeleteCategory = (catToDelete: string) => {
+    const handleDeleteCategory = async (catToDelete: string) => {
         if (window.confirm(`Er du sikker på, du vil slette kategorien "${catToDelete}"?`)) {
-            // NOTE: I en rigtig backend-opsætning ville dette kalde en API service
-            setCategories(prev => prev.filter(c => c !== catToDelete));
-            toast.success(`Kategorien "${catToDelete}" er slettet.`);
+            // FIX: Nu kalder vi backend API'et
+            try {
+                await api.deleteCategory(catToDelete);
+                setCategories(prev => prev.filter(c => c !== catToDelete));
+                toast.success(`Kategorien "${catToDelete}" er slettet.`);
+            } catch (e) {
+                toast.error("Kunne ikke slette kategorien.");
+            }
         }
     };
 
@@ -325,6 +336,13 @@ export const TaskManagement: React.FC = () => {
     };
     const [newTask, setNewTask] = useState<Partial<Task> & typeof initialNewTaskState>(initialNewTaskState);
     const [newTaskError, setNewTaskError] = useState('');
+
+    // FIX: Når kategorier hentes, opdater newTask hvis category er tom
+    useEffect(() => {
+        if (categories.length > 0 && !newTask.category) {
+            setNewTask(prev => ({ ...prev, category: categories[0] }));
+        }
+    }, [categories, newTask.category]);
 
     const handleNewTaskChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -339,7 +357,11 @@ export const TaskManagement: React.FC = () => {
 
     const handleAddTask = () => {
         setNewTaskError('');
-        if (!newTask.title || !newTask.task_date || !newTask.category) { setNewTaskError('Udfyld venligst titel, dato og kategori.'); return; }
+        // FIX: Tjek for falsy values, men tillad 0 for numeriske værdier hvor relevant
+        if (!newTask.title || !newTask.task_date || !newTask.category) { 
+            setNewTaskError('Udfyld venligst titel, dato og kategori.'); 
+            return; 
+        }
         const selectedDate = new Date(newTask.task_date);
         const now = new Date(); now.setHours(0, 0, 0, 0);
         if (!newTask.is_template && selectedDate < now) { setNewTaskError('Datoen for en ny opgave kan ikke være i fortiden.'); return; }
