@@ -9,9 +9,9 @@ type ShiftView = 'Kalender' | 'Mine Vagter' | 'Ledige Vagter' | 'Vagtbytte';
 
 // --- Helper Components ---
 
-const ConfirmButton: React.FC<{ 
-    onClick: () => void; 
-    className?: string; 
+const ConfirmButton: React.FC<{
+    onClick: () => void;
+    className?: string;
     children: React.ReactNode;
     confirmText?: string;
 }> = ({ onClick, className, children, confirmText = "Er du sikker?" }) => {
@@ -67,8 +67,8 @@ const UserProfileModal: React.FC<{ user: User, onClose: () => void }> = ({ user,
 
                     {user.phone && user.phone_is_public && (
                         <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                             <p className="text-sm text-slate-500 dark:text-slate-400">Telefonnummer:</p>
-                             <a href={`tel:${user.phone}`} className="text-lg font-semibold text-slate-800 dark:text-slate-200 hover:underline">{user.phone}</a>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Telefonnummer:</p>
+                            <a href={`tel:${user.phone}`} className="text-lg font-semibold text-slate-800 dark:text-slate-200 hover:underline">{user.phone}</a>
                         </div>
                     )}
                 </div>
@@ -84,10 +84,10 @@ const ShiftDetailsModal: React.FC<{ shift: Shift, onClose: () => void, onViewUse
         return shiftRoles.filter(r => r.shiftId === shift.id);
     }, [shiftRoles, shift.id]);
 
-    const RoleUserDisplay: React.FC<{role: ShiftRole}> = ({ role }) => {
+    const RoleUserDisplay: React.FC<{ role: ShiftRole }> = ({ role }) => {
         if (!role.userId) {
             return (
-                 <button onClick={() => handleTakeShiftRole(role.id)} className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
+                <button onClick={() => handleTakeShiftRole(role.id)} className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
                     Ledig
                 </button>
             );
@@ -136,7 +136,7 @@ const ShiftListCard: React.FC<{ shift: Shift, onDetailsClick: (shift: Shift) => 
         // Add "T00:00:00" to handle timezone issues correctly
         const timezoneSafeDate = new Date(shift.date + 'T00:00:00');
         if (isNaN(timezoneSafeDate.getTime())) return "Ugyldig dato";
-        
+
         const weekday = new Intl.DateTimeFormat('da-DK', { weekday: 'long' }).format(timezoneSafeDate);
         const day = timezoneSafeDate.getDate().toString().padStart(2, '0');
         const month = (timezoneSafeDate.getMonth() + 1).toString().padStart(2, '0');
@@ -144,7 +144,7 @@ const ShiftListCard: React.FC<{ shift: Shift, onDetailsClick: (shift: Shift) => 
         return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${day}-${month}-${year}`;
     }, [shift.date]);
 
-    const shortDescription = shift.description 
+    const shortDescription = shift.description
         ? (shift.description.length > 80 ? shift.description.substring(0, 80) + '...' : shift.description)
         : 'Ingen yderligere beskrivelse.';
 
@@ -154,7 +154,7 @@ const ShiftListCard: React.FC<{ shift: Shift, onDetailsClick: (shift: Shift) => 
                 <div className="flex justify-between items-baseline">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{formattedDate}</p>
                     {shift.startTime && shift.endTime && (
-                         <p className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">{shift.startTime} - {shift.endTime}</p>
+                        <p className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">{shift.startTime} - {shift.endTime}</p>
                     )}
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{shift.title || 'Vagt'}</h3>
@@ -206,10 +206,11 @@ const CalendarView: React.FC<{ onShiftClick: (shift: Shift) => void }> = ({ onSh
 
     return (
         <div>
-             <div className="mb-4">
+            <div className="mb-4">
                 <label htmlFor="month-filter" className="sr-only">Filtrer efter måned</label>
                 <select
                     id="month-filter"
+                    name="month-filter"
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     className="block w-full sm:w-auto pl-3 pr-10 py-2 text-base border-slate-300 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
@@ -240,7 +241,7 @@ const MyShiftsView: React.FC = () => {
 
     const myUpcomingShifts = useMemo(() => {
         if (!currentUser) return [];
-        
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -266,7 +267,7 @@ const MyShiftsView: React.FC = () => {
 
 
     if (!currentUser) return null;
-    
+
     if (myUpcomingShifts.length === 0) {
         return <p className="text-center text-slate-500 dark:text-slate-400 p-8">Du har ingen kommende vagter.</p>;
     }
@@ -309,7 +310,7 @@ const MyShiftsView: React.FC = () => {
         </div>
     );
 };
-    
+
 const AvailableShiftsView = () => {
     const { shifts, shiftRoles, handleTakeShiftRole } = useData();
 
@@ -325,7 +326,7 @@ const AvailableShiftsView = () => {
                 map[shift.id].roles.push(role);
             }
         });
-        return Object.values(map).sort((a,b) => new Date(a.shift.date).getTime() - new Date(b.shift.date).getTime());
+        return Object.values(map).sort((a, b) => new Date(a.shift.date).getTime() - new Date(b.shift.date).getTime());
     }, [shiftRoles, shifts]);
 
     return (
@@ -333,12 +334,12 @@ const AvailableShiftsView = () => {
             {shiftsWithAvailableRoles.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 p-8">Der er ingen ledige vagter i øjeblikket.</p>}
             {shiftsWithAvailableRoles.map(({ shift, roles }) => (
                 <div key={shift.id} className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                     <h4 className="font-bold text-slate-800 dark:text-slate-100">{shift.title || "Vagt"}</h4>
-                     <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <h4 className="font-bold text-slate-800 dark:text-slate-100">{shift.title || "Vagt"}</h4>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                         {new Date(shift.date).toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}
                         {shift.startTime && shift.endTime && ` • ${shift.startTime} - ${shift.endTime}`}
-                     </p>
-                     <ul className="mt-3 space-y-2">
+                    </p>
+                    <ul className="mt-3 space-y-2">
                         {roles.map(role => (
                             <li key={role.id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-2 rounded-md">
                                 <span className="font-semibold text-slate-800 dark:text-slate-200">{role.roleName}</span>
@@ -350,7 +351,7 @@ const AvailableShiftsView = () => {
                                 </button>
                             </li>
                         ))}
-                     </ul>
+                    </ul>
                 </div>
             ))}
         </div>
@@ -361,10 +362,10 @@ const ShiftTradeView = () => {
     const { currentUser, shiftTrades, shiftRoles, shifts, users, handleAcceptShiftTrade, handleCancelShiftTrade } = useData();
 
     const pendingTrades = useMemo(() => shiftTrades.filter(t => t.status === 'PENDING'), [shiftTrades]);
-    
+
     if (!currentUser) return null;
 
-    const UserDisplay: React.FC<{userId: string | null}> = ({ userId }) => {
+    const UserDisplay: React.FC<{ userId: string | null }> = ({ userId }) => {
         if (!userId) {
             return <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Ledig</span>;
         }
@@ -379,9 +380,9 @@ const ShiftTradeView = () => {
             </div>
         );
     };
-    
+
     return (
-         <div className="space-y-4">
+        <div className="space-y-4">
             {pendingTrades.length === 0 && <p className="text-center text-slate-500 dark:text-slate-400 p-8">Der er ingen åbne vagtbytte-anmodninger.</p>}
             {pendingTrades.map(trade => {
                 const role = shiftRoles.find(r => r.id === trade.shiftRoleId);
@@ -390,7 +391,7 @@ const ShiftTradeView = () => {
                 if (!shift) return null;
                 const offeringUser = users.find(u => u.id === trade.offeringUserId);
                 if (!offeringUser) return null;
-                
+
                 const isMyTrade = trade.offeringUserId === currentUser.id;
 
                 return (
@@ -408,15 +409,15 @@ const ShiftTradeView = () => {
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                                 {isMyTrade ? (
+                                {isMyTrade ? (
                                     <button onClick={() => handleCancelShiftTrade(trade.id)} className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-1 px-3 rounded text-sm">
                                         Annuller
                                     </button>
-                                 ) : (
+                                ) : (
                                     <button onClick={() => handleAcceptShiftTrade(trade.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-3 rounded text-sm">
                                         Accepter Bytte
                                     </button>
-                                 )}
+                                )}
                             </div>
                         </div>
                     </div>
@@ -442,7 +443,7 @@ export const ShiftCalendarPage: React.FC = () => {
             default: return null;
         }
     };
-    
+
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-2">Vagtplan</h2>

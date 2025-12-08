@@ -49,11 +49,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onLoginSuccess, m
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && <p className="text-sm text-center text-rose-500 bg-rose-50 dark:bg-rose-900/30 p-3 rounded-md">{error}</p>}
                     {message && <p className="text-sm text-center text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-md">{message}</p>}
-                    
+
                     <div>
                         <label htmlFor="test-role-selector" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Vælg testbruger</label>
                         <select
                             id="test-role-selector"
+                            name="test-role-selector"
                             value={selectedTestRole}
                             onChange={handleTestRoleChange}
                             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"

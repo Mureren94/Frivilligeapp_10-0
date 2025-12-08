@@ -10,9 +10,10 @@ import toast from 'react-hot-toast';
 interface TaskImageSelectorProps {
     currentImage: string | undefined;
     onImageChange: (base64: string) => void;
+    id?: string;
 }
 
-const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange }) => {
+const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onImageChange, id }) => {
     const { tasks, settings, galleryImages } = useData();
     const [mode, setMode] = useState<'upload' | 'gallery'>('upload');
 
@@ -52,11 +53,11 @@ const TaskImageSelector: React.FC<TaskImageSelectorProps> = ({ currentImage, onI
                 <div className="flex-grow">
                     {mode === 'upload' ? (
                         <div>
-                             {/* LØSNING PÅ "NO LABEL" FEJL: Input er nestet i label */}
-                             <label className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900 cursor-pointer border border-dashed border-slate-300 dark:border-slate-600 rounded-md p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                 <span className="block mb-1">Klik for at vælge billede</span>
-                                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                             </label>
+                            {/* LØSNING PÅ "NO LABEL" FEJL: Input er nestet i label */}
+                            <label className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900 cursor-pointer border border-dashed border-slate-300 dark:border-slate-600 rounded-md p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <span className="block mb-1">Klik for at vælge billede</span>
+                                <input id={id} name={id || "image-selector"} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                            </label>
                             <p className="text-xs text-slate-500 mt-2">Understøtter JPG, PNG, GIF, WebP.</p>
                         </div>
                     ) : (
@@ -99,7 +100,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
         if (!task.created_by) return null;
         return users.find(u => u.id === task.created_by);
     }, [task.created_by, users]);
-    
+
     const imageUrl = task.image || settings.defaultTaskImage;
 
     return (
@@ -107,7 +108,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
             <input id={`select-row-${task.id}`} name={`select-row-${task.id}`} aria-label="Vælg række" type="checkbox" checked={isSelected} onChange={onToggleSelect} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500 mt-1 flex-shrink-0" />
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 w-full">
                 <div className="flex items-start gap-4 flex-grow">
-                     <img src={api.getImageUrl(imageUrl) || `https://ui-avatars.com/api/?name=${task.title.replace(/\s/g, '+')}&background=random&size=64`} alt={task.title} className="w-16 h-16 rounded object-cover flex-shrink-0 bg-slate-200 dark:bg-slate-600" />
+                    <img src={api.getImageUrl(imageUrl) || `https://ui-avatars.com/api/?name=${task.title.replace(/\s/g, '+')}&background=random&size=64`} alt={task.title} className="w-16 h-16 rounded object-cover flex-shrink-0 bg-slate-200 dark:bg-slate-600" />
                     <div className="flex-grow">
                         <p className="font-medium text-slate-800 dark:text-slate-100 flex items-center gap-2">{task.title}{task.is_template && <TemplateIcon />}</p>
                         <span className="block text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -122,7 +123,7 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                             {/* Også her bruger vi label nesting */}
                             <label className="text-xs cursor-pointer bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 px-2 py-1 rounded">
                                 Upload
-                                <input type="file" accept="image/*" onChange={handleImageChangeForTask} className="hidden" />
+                                <input id={`upload-task-image-${task.id}`} name={`upload-task-image-${task.id}`} type="file" accept="image/*" onChange={handleImageChangeForTask} className="hidden" />
                             </label>
                             {task.image && (<button onClick={() => onUpdate(task.id, 'image', '')} className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-900/50 dark:hover:bg-rose-900 dark:text-rose-400 px-2 py-1 rounded">Fjern billede</button>)}
                         </div>
@@ -144,13 +145,13 @@ const AdminTaskRow: React.FC<AdminTaskRowProps> = ({ task, isSelected, onToggleS
                         </select>
                     </div>
                     <div className="flex flex-col">
-                         <label htmlFor={`volunteers-${task.id}`} className="sr-only">Pladser</label>
-                         <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-0.5">Pladser</span>
-                         <input id={`volunteers-${task.id}`} name={`volunteers-${task.id}`} type="number" value={task.volunteers_needed} onChange={e => onUpdate(task.id, 'volunteers_needed', parseInt(e.target.value))} className="h-9 w-20 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-white text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        <label htmlFor={`volunteers-${task.id}`} className="sr-only">Pladser</label>
+                        <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-0.5">Pladser</span>
+                        <input id={`volunteers-${task.id}`} name={`volunteers-${task.id}`} type="number" value={task.volunteers_needed} onChange={e => onUpdate(task.id, 'volunteers_needed', parseInt(e.target.value))} className="h-9 w-20 p-1 border dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-white text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     </div>
                     <div className="flex items-center gap-1 h-9">
-                         <button onClick={() => onEdit(task)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-1" title="Rediger opgave"><EditIcon /></button>
-                         <button onClick={() => onDelete(task.id)} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1" title="Slet opgave"><TrashIcon /></button>
+                        <button onClick={() => onEdit(task)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-1" title="Rediger opgave"><EditIcon /></button>
+                        <button onClick={() => onDelete(task.id)} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1" title="Slet opgave"><TrashIcon /></button>
                     </div>
                 </div>
             </div>
@@ -169,7 +170,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
     const { categories, settings } = useData();
     const minPoints = settings.minTaskPoints ?? 1;
     const maxPoints = settings.maxTaskPoints ?? 1000;
-    
+
     const [editedTask, setEditedTask] = useState<Task>(task);
     const [error, setError] = useState('');
 
@@ -181,17 +182,17 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
             if (value) {
                 setEditedTask(prev => ({ ...prev, repeat_interval: value as Task['repeat_interval'], repeat_frequency: prev.repeat_frequency || 1 }));
             } else {
-                 setEditedTask(prev => { const newState = {...prev}; delete newState.repeat_interval; delete newState.repeat_frequency; return newState; });
+                setEditedTask(prev => { const newState = { ...prev }; delete newState.repeat_interval; delete newState.repeat_frequency; return newState; });
             }
             return;
         }
-        
+
         setEditedTask(prev => ({
             ...prev,
             [name]: isCheckbox ? (e.target as HTMLInputElement).checked : (['points', 'volunteers_needed', 'estimated_time'].includes(name) ? parseInt(value) || 0 : (name === 'repeat_frequency' ? Math.max(1, parseInt(value) || 1) : value))
         }));
     };
-    
+
     const formattedDate = useMemo(() => {
         try {
             const date = new Date(editedTask.task_date);
@@ -214,7 +215,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
         e.preventDefault();
         setError('');
         if (!editedTask.title || !editedTask.task_date || !editedTask.category) { setError('Udfyld venligst titel, dato og kategori.'); return; }
-        
+
         const selectedDate = new Date(editedTask.task_date);
         const now = new Date();
         now.setHours(0, 0, 0, 0);
@@ -232,21 +233,21 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
                     <div className="p-6 overflow-y-auto flex-1">
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Rediger Opgave</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div>
+                            <div>
                                 <label htmlFor="edit-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label>
-                                <input id="edit-title" name="title" value={editedTask.title} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
-                             </div>
+                                <input id="edit-title" name="title" value={editedTask.title} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            </div>
                             <div>
                                 <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                <input id="edit-date" type="datetime-local" name="task_date_local" value={formattedDate} onChange={handleDateChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="edit-date" type="datetime-local" name="task_date_local" value={formattedDate} onChange={handleDateChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="md:col-span-2">
                                 <label htmlFor="edit-description" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label>
                                 <textarea id="edit-description" name="description" value={editedTask.description} onChange={handleChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
-                                <TaskImageSelector idPrefix="edit-task" currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
+                                <label htmlFor="edit-task-image" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
+                                <TaskImageSelector id="edit-task-image" currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
                             </div>
                             <div>
                                 <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
@@ -255,26 +256,26 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
                             {settings.enablePoints !== false && (
                                 <div>
                                     <label htmlFor="edit-points" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label>
-                                    <input id="edit-points" name="points" type="number" min={minPoints} max={maxPoints} value={editedTask.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                    <input id="edit-points" name="points" type="number" min={minPoints} max={maxPoints} value={editedTask.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                                 </div>
                             )}
                             <div>
                                 <label htmlFor="edit-volunteers" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label>
-                                <input id="edit-volunteers" name="volunteers_needed" type="number" value={editedTask.volunteers_needed} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="edit-volunteers" name="volunteers_needed" type="number" value={editedTask.volunteers_needed} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div>
                                 <label htmlFor="edit-time" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label>
-                                <input id="edit-time" name="estimated_time" type="number" value={editedTask.estimated_time || ''} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="edit-time" name="estimated_time" type="number" value={editedTask.estimated_time || ''} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="md:col-span-2">
                                 <label htmlFor="edit-repeat-interval" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label>
                                 <div className="flex items-center gap-2">
                                     <select id="edit-repeat-interval" name="repeat_interval" value={editedTask.repeat_interval || ''} onChange={handleChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>
-                                    {editedTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="edit-repeat-freq" className="sr-only">Frekvens</label><input id="edit-repeat-freq" name="repeat_frequency" type="number" value={editedTask.repeat_frequency || 1} onChange={handleChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
+                                    {editedTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="edit-repeat-freq" className="sr-only">Frekvens</label><input id="edit-repeat-freq" name="repeat_frequency" type="number" value={editedTask.repeat_frequency || 1} onChange={handleChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>)}
                                 </div>
                             </div>
-                             <div className="md:col-span-2 flex items-center">
-                                <input type="checkbox" id="edit-isTemplate" name="is_template" checked={!!editedTask.is_template} onChange={handleChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                            <div className="md:col-span-2 flex items-center">
+                                <input type="checkbox" id="edit-isTemplate" name="is_template" checked={!!editedTask.is_template} onChange={handleChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                                 <label htmlFor="edit-isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label>
                             </div>
                         </div>
@@ -348,8 +349,8 @@ export const TaskManagement: React.FC = () => {
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
         if (name === "repeat_interval") {
-            if (value) { setNewTask(prev => ({ ...prev, repeat_interval: value as Task['repeat_interval'], repeat_frequency: prev.repeat_frequency || 1 })); } 
-            else { setNewTask(prev => { const newState = {...prev}; delete newState.repeat_interval; delete newState.repeat_frequency; return newState; }); }
+            if (value) { setNewTask(prev => ({ ...prev, repeat_interval: value as Task['repeat_interval'], repeat_frequency: prev.repeat_frequency || 1 })); }
+            else { setNewTask(prev => { const newState = { ...prev }; delete newState.repeat_interval; delete newState.repeat_frequency; return newState; }); }
             return;
         }
         setNewTask(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : (['points', 'volunteers_needed', 'estimated_time'].includes(name) ? parseInt(value) || 0 : (name === 'repeat_frequency' ? Math.max(1, parseInt(value) || 1) : value)) }));
@@ -358,9 +359,9 @@ export const TaskManagement: React.FC = () => {
     const handleAddTask = async () => {
         setNewTaskError('');
         // FIX: Tjek for falsy values, men tillad 0 for numeriske værdier hvor relevant
-        if (!newTask.title || !newTask.task_date || !newTask.category) { 
-            setNewTaskError('Udfyld venligst titel, dato og kategori.'); 
-            return; 
+        if (!newTask.title || !newTask.task_date || !newTask.category) {
+            setNewTaskError('Udfyld venligst titel, dato og kategori.');
+            return;
         }
         const selectedDate = new Date(newTask.task_date);
         const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -381,11 +382,11 @@ export const TaskManagement: React.FC = () => {
         if (settings.enablePoints !== false && field === 'is_completed' && value === true && task && !task.is_completed) {
             const signedUpEmails = Object.keys(userTaskSignups).filter((email) => userTaskSignups[email].includes(taskId));
             if (signedUpEmails.length > 0) {
-                 setUsers(prevUsers => prevUsers.map(user => { if (signedUpEmails.includes(user.email)) { return { ...user, points: user.points + task.points }; } return user; }));
-                 toast.success(`${signedUpEmails.length} bruger(e) har fået ${task.points} point for fuldførelse!`);
+                setUsers(prevUsers => prevUsers.map(user => { if (signedUpEmails.includes(user.email)) { return { ...user, points: user.points + task.points }; } return user; }));
+                toast.success(`${signedUpEmails.length} bruger(e) har fået ${task.points} point for fuldførelse!`);
             }
         }
-        
+
         try {
             const taskToUpdate = tasks.find(t => t.id === taskId);
             if (taskToUpdate) {
@@ -397,7 +398,7 @@ export const TaskManagement: React.FC = () => {
             toast.error("Kunne ikke opdatere opgave.");
         }
     };
-    
+
     const handleSaveEditedTask = async (updatedTask: Task) => {
         try {
             await api.updateTask(updatedTask);
@@ -410,7 +411,7 @@ export const TaskManagement: React.FC = () => {
     };
 
     const handleDeleteTask = async (taskId: string) => {
-         if (window.confirm(`Er du sikker på, du vil slette denne opgave?`)) {
+        if (window.confirm(`Er du sikker på, du vil slette denne opgave?`)) {
             try {
                 await api.deleteTask(taskId);
                 const taskToDelete = tasks.find(t => t.id === taskId);
@@ -430,8 +431,8 @@ export const TaskManagement: React.FC = () => {
     const [templateSearch, setTemplateSearch] = useState('');
     const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
 
-    const allNormalTasks = useMemo(() => tasks.filter(t => !t.is_template).sort((a,b) => new Date(b.task_date).getTime() - new Date(a.task_date).getTime()), [tasks]);
-    const allTemplates = useMemo(() => tasks.filter(t => t.is_template).sort((a,b) => new Date(b.task_date).getTime() - new Date(a.task_date).getTime()), [tasks]);
+    const allNormalTasks = useMemo(() => tasks.filter(t => !t.is_template).sort((a, b) => new Date(b.task_date).getTime() - new Date(a.task_date).getTime()), [tasks]);
+    const allTemplates = useMemo(() => tasks.filter(t => t.is_template).sort((a, b) => new Date(b.task_date).getTime() - new Date(a.task_date).getTime()), [tasks]);
 
     const filteredTasks = useMemo(() => {
         return allNormalTasks.filter(task => {
@@ -454,7 +455,7 @@ export const TaskManagement: React.FC = () => {
     const handleToggleSelectAllTasks = () => selectedTaskIds.length === filteredTasks.length ? setSelectedTaskIds([]) : setSelectedTaskIds(filteredTasks.map(t => t.id));
     const handleToggleSelectTemplate = (templateId: string) => setSelectedTemplateIds(prev => prev.includes(templateId) ? prev.filter(id => id !== templateId) : [...prev, templateId]);
     const handleToggleSelectAllTemplates = () => selectedTemplateIds.length === filteredTemplates.length ? setSelectedTemplateIds([]) : setSelectedTemplateIds(filteredTemplates.map(t => t.id));
-    
+
     const handleBulkDelete = async (idsToDelete: string[], type: 'task' | 'template') => {
         const count = idsToDelete.length;
         if (count === 0) return;
@@ -491,22 +492,22 @@ export const TaskManagement: React.FC = () => {
                 {activeTab === 'create' && (
                     <div>
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Opret ny Opgave</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="create-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel</label>
-                                <input id="create-title" name="title" value={newTask.title} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="create-title" name="title" value={newTask.title} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div>
                                 <label htmlFor="create-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                <input id="create-date" type="datetime-local" name="task_date" value={newTask.task_date} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="create-date" type="datetime-local" name="task_date" value={newTask.task_date} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="md:col-span-2">
                                 <label htmlFor="create-description" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse</label>
                                 <textarea id="create-description" name="description" value={newTask.description} onChange={handleNewTaskChange} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
-                                <TaskImageSelector idPrefix="create-task" currentImage={newTask.image} onImageChange={(base64) => setNewTask(prev => ({ ...prev, image: base64 }))} />
+                                <label htmlFor="create-task-image" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
+                                <TaskImageSelector id="create-task-image" currentImage={newTask.image} onImageChange={(base64) => setNewTask(prev => ({ ...prev, image: base64 }))} />
                             </div>
                             <div>
                                 <label htmlFor="create-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
@@ -515,26 +516,26 @@ export const TaskManagement: React.FC = () => {
                             {settings.enablePoints !== false && (
                                 <div>
                                     <label htmlFor="create-points" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label>
-                                    <input id="create-points" name="points" type="number" min={minPoints} max={maxPoints} value={newTask.points} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                    <input id="create-points" name="points" type="number" min={minPoints} max={maxPoints} value={newTask.points} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                                 </div>
                             )}
                             <div>
                                 <label htmlFor="create-volunteers" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Antal Frivillige</label>
-                                <input id="create-volunteers" name="volunteers_needed" type="number" value={newTask.volunteers_needed} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="create-volunteers" name="volunteers_needed" type="number" value={newTask.volunteers_needed} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div>
                                 <label htmlFor="create-time" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Est. Tid (minutter)</label>
-                                <input id="create-time" name="estimated_time" type="number" value={newTask.estimated_time} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="create-time" name="estimated_time" type="number" value={newTask.estimated_time} onChange={handleNewTaskChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="md:col-span-2">
                                 <label htmlFor="create-repeat-interval" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Gentagelse</label>
                                 <div className="flex items-center gap-2">
                                     <select id="create-repeat-interval" name="repeat_interval" value={newTask.repeat_interval || ''} onChange={handleNewTaskChange} className="p-2 border rounded bg-white w-1/2 border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"><option value="">Ingen gentagelse</option><option value="dage">Dage</option><option value="uger">Uger</option><option value="måneder">Måneder</option></select>
-                                    {newTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="create-repeat-freq" className="sr-only">Frekvens</label><input id="create-repeat-freq" name="repeat_frequency" type="number" value={newTask.repeat_frequency || 1} onChange={handleNewTaskChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/></div>)}
+                                    {newTask.repeat_interval && (<div className="flex items-center gap-2 w-1/2"><span className="text-sm dark:text-slate-400">Hver</span><label htmlFor="create-repeat-freq" className="sr-only">Frekvens</label><input id="create-repeat-freq" name="repeat_frequency" type="number" value={newTask.repeat_frequency || 1} onChange={handleNewTaskChange} min="1" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" /></div>)}
                                 </div>
                             </div>
                             <div className="md:col-span-2 flex items-center">
-                                <input type="checkbox" id="isTemplate" name="is_template" checked={!!newTask.is_template} onChange={handleNewTaskChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                                <input type="checkbox" id="isTemplate" name="is_template" checked={!!newTask.is_template} onChange={handleNewTaskChange} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                                 <label htmlFor="isTemplate" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Gem som skabelon</label>
                             </div>
                         </div>
@@ -543,7 +544,7 @@ export const TaskManagement: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'categories' && (
-                     <div>
+                    <div>
                         <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Administrer Kategorier</h3>
                         <div className="flex gap-2 mb-4">
                             <label htmlFor="new-category-input" className="sr-only">Ny kategori</label>
@@ -565,7 +566,7 @@ export const TaskManagement: React.FC = () => {
                             {selectedTaskIds.length > 0 && (<div className="lg:col-span-3"><button onClick={() => handleBulkDelete(selectedTaskIds, 'task')} className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-700">Slet valgte ({selectedTaskIds.length})</button></div>)}
                         </div>
                         <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                            <input id="select-all-tasks" name="select-all-tasks" type="checkbox" checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} onChange={handleToggleSelectAllTasks} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                            <input id="select-all-tasks" name="select-all-tasks" type="checkbox" checked={filteredTasks.length > 0 && selectedTaskIds.length === filteredTasks.length} onChange={handleToggleSelectAllTasks} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                             <label htmlFor="select-all-tasks" className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
                         </div>
                         <div className="space-y-4 max-h-[32rem] overflow-y-auto">
@@ -573,8 +574,8 @@ export const TaskManagement: React.FC = () => {
                         </div>
                     </div>
                 )}
-                 {activeTab === 'templates' && (
-                     <div>
+                {activeTab === 'templates' && (
+                    <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
                             <label htmlFor="template-search" className="sr-only">Søg skabeloner</label>
                             <input id="template-search" name="template-search" type="text" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} placeholder="Søg på titel..." className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
@@ -583,7 +584,7 @@ export const TaskManagement: React.FC = () => {
                             {selectedTemplateIds.length > 0 && (<div className="lg:col-span-3"><button onClick={() => handleBulkDelete(selectedTemplateIds, 'template')} className="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-rose-700">Slet valgte ({selectedTemplateIds.length})</button></div>)}
                         </div>
                         <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                            <input id="select-all-templates" name="select-all-templates" type="checkbox" checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length} onChange={handleToggleSelectAllTemplates} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"/>
+                            <input id="select-all-templates" name="select-all-templates" type="checkbox" checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length} onChange={handleToggleSelectAllTemplates} className="appearance-none h-5 w-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                             <label htmlFor="select-all-templates" className="text-sm font-medium text-slate-700 dark:text-slate-300">Vælg alle</label>
                         </div>
                         <div className="space-y-4 max-h-[32rem] overflow-y-auto">

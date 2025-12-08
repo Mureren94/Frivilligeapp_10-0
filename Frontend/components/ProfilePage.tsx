@@ -107,7 +107,7 @@ export const ProfilePage: React.FC = () => {
 
     const handleSave = () => {
         if (!profile) return;
-        
+
         setPasswordError('');
         if (password || confirmPassword) {
             if (password.length < 6) {
@@ -133,7 +133,7 @@ export const ProfilePage: React.FC = () => {
                 newsletter: notifyOnNewsletter
             }
         };
-        
+
         if (password) {
             profileUpdate.password = password;
         }
@@ -154,7 +154,7 @@ export const ProfilePage: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-md grid md:grid-cols-3 gap-8 transition-colors duration-300">
                 <div className="md:col-span-1 flex flex-col items-center">
                     <img src={imagePreview || `https://ui-avatars.com/api/?name=${name}&background=random`} alt="Profile" className="w-40 h-40 rounded-full object-cover mb-4 ring-4 ring-emerald-200 dark:ring-emerald-500/50" />
-                    <input type="file" id="profile-image-upload" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    <input type="file" id="profile-image-upload" name="profile-image-upload" className="hidden" accept="image/*" onChange={handleImageChange} />
                     <label htmlFor="profile-image-upload" className="cursor-pointer bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2 px-4 rounded transition-colors duration-200">
                         Skift billede
                     </label>
@@ -187,6 +187,7 @@ export const ProfilePage: React.FC = () => {
                             type="checkbox"
                             checked={isPhoneHidden}
                             onChange={e => setIsPhoneHidden(e.target.checked)}
+                            name="phone-hidden"
                             className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500"
                         />
                         <label htmlFor="phone-hidden" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">
@@ -198,15 +199,15 @@ export const ProfilePage: React.FC = () => {
                         <h4 className="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Notifikationsindstillinger</h4>
                         <div className="space-y-2">
                             <div className="flex items-center">
-                                <input id="notify-new-task" type="checkbox" checked={notifyOnNewTask} onChange={e => setNotifyOnNewTask(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
+                                <input id="notify-new-task" name="notify-new-task" type="checkbox" checked={notifyOnNewTask} onChange={e => setNotifyOnNewTask(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                                 <label htmlFor="notify-new-task" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Modtag email ved nye opgaver</label>
                             </div>
                             <div className="flex items-center">
-                                <input id="notify-shift-trade" type="checkbox" checked={notifyOnShiftTrade} onChange={e => setNotifyOnShiftTrade(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
+                                <input id="notify-shift-trade" name="notify-shift-trade" type="checkbox" checked={notifyOnShiftTrade} onChange={e => setNotifyOnShiftTrade(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                                 <label htmlFor="notify-shift-trade" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Modtag email når din vagt er byttet</label>
                             </div>
                             <div className="flex items-center">
-                                <input id="notify-newsletter" type="checkbox" checked={notifyOnNewsletter} onChange={e => setNotifyOnNewsletter(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
+                                <input id="notify-newsletter" name="notify-newsletter" type="checkbox" checked={notifyOnNewsletter} onChange={e => setNotifyOnNewsletter(e.target.checked)} className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-emerald-600 checked:border-transparent checked:bg-checkbox-mark focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-emerald-500" />
                                 <label htmlFor="notify-newsletter" className="ml-2 block text-sm text-slate-900 dark:text-slate-300">Modtag nyhedsbreve</label>
                             </div>
                         </div>
@@ -278,12 +279,12 @@ export const ProfilePage: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                         <div className="flex-grow flex items-center justify-center">
+                        <div className="flex-grow flex items-center justify-center">
                             <p className="text-slate-500 dark:text-slate-400 text-center">Du har ingen kommende opgaver.</p>
                         </div>
                     )}
                 </div>
-                
+
                 {/* Completed Tasks History */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md transition-colors duration-300 flex flex-col h-[32rem]">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex-shrink-0">Fuldførte Opgaver</h3>
@@ -309,8 +310,8 @@ export const ProfilePage: React.FC = () => {
                         </div>
                     )}
                 </div>
-                
-                 {/* Upcoming Shifts */}
+
+                {/* Upcoming Shifts */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md transition-colors duration-300 flex flex-col h-[32rem]">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex-shrink-0">Mine Kommende Vagter</h3>
                     {upcomingShifts.length > 0 ? (
@@ -330,7 +331,7 @@ export const ProfilePage: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                         <div className="flex-grow flex items-center justify-center">
+                        <div className="flex-grow flex items-center justify-center">
                             <p className="text-slate-500 dark:text-slate-400 text-center">Du har ingen kommende vagter.</p>
                         </div>
                     )}

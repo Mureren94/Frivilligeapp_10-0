@@ -17,7 +17,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onSave, onClose }) 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        
+
         const newValue = name === 'points' ? parseInt(value) || 0 : value;
 
         setEditedUser(prev => ({ ...prev, [name]: newValue }));
@@ -45,16 +45,16 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onSave, onClose }) 
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="edit-user-name" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Navn</label>
-                                <input id="edit-user-name" name="name" value={editedUser.name} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="edit-user-name" name="name" value={editedUser.name} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div>
                                 <label htmlFor="edit-user-email" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Email</label>
-                                <input id="edit-user-email" name="email" type="email" value={editedUser.email} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="edit-user-email" name="email" type="email" value={editedUser.email} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             {settings.enablePoints !== false && (
                                 <div>
                                     <label htmlFor="edit-user-points" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Point</label>
-                                    <input id="edit-user-points" name="points" type="number" value={editedUser.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                                    <input id="edit-user-points" name="points" type="number" value={editedUser.points} onChange={handleChange} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                 </div>
                             )}
                             <div>
@@ -90,7 +90,7 @@ export const UserManagement: React.FC = () => {
     const [newUserName, setNewUserName] = useState('');
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserRole, setNewUserRole] = useState('bruger');
-    
+
     const [userSearch, setUserSearch] = useState('');
     const [importStatus, setImportStatus] = useState('');
     const [csvImportRole, setCsvImportRole] = useState<string>('bruger');
@@ -132,13 +132,13 @@ export const UserManagement: React.FC = () => {
                     newsletter: true
                 }
             };
-            
+
             // FIX: Kald API via DataContext
             const success = await handleSaveUser(newUser);
             if (success) {
                 toast.success(`Bruger '${name}' oprettet som ${roles.find(r => r.id === roleId)?.name}. Der er sendt en email for at sætte adgangskode.`);
                 handleForgotPasswordRequest(email); // send reset link
-                setNewUserName(''); 
+                setNewUserName('');
                 setNewUserEmail('');
             }
             return success;
@@ -163,7 +163,7 @@ export const UserManagement: React.FC = () => {
             await handleDeleteUser(userId);
         }
     };
-    
+
     const handleBulkDelete = async () => {
         if (selectedUserIds.length === 0) return;
         if (selectedUserIds.includes(currentUser?.id || '')) {
@@ -189,7 +189,7 @@ export const UserManagement: React.FC = () => {
             const roleMatch = selectedRoleFilter === 'all' || user.role === selectedRoleFilter;
             const searchMatch = !userSearch || user.name.toLowerCase().includes(userSearch.toLowerCase()) || user.email.toLowerCase().includes(userSearch.toLowerCase());
             return roleMatch && searchMatch;
-        }).sort((a,b) => a.name.localeCompare(b.name));
+        }).sort((a, b) => a.name.localeCompare(b.name));
     }, [users, selectedRoleFilter, userSearch]);
 
     const handleToggleSelectAll = () => {
@@ -250,16 +250,16 @@ export const UserManagement: React.FC = () => {
                             role: csvImportRole,
                             points: 0,
                         };
-                        
+
                         // FIX: Kald API for hver bruger
                         await handleSaveUser(newUser);
                         handleForgotPasswordRequest(newUser.email);
-                        
+
                         existingEmails.add(email.toLowerCase());
                         createdCount++;
                     }
                 }
-                
+
                 setImportStatus(`Færdig! ${createdCount} brugere oprettet. ${skippedCount} sprunget over (eksisterende email).`);
                 toast.success(`${createdCount} brugere importeret. Links til nulstilling af adgangskode er sendt.`);
 
@@ -284,10 +284,9 @@ export const UserManagement: React.FC = () => {
         document.body.removeChild(link);
     };
 
-    const tabClasses = (tabName: UserManagementTab) => 
-        `px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 border-b-2 ${
-            activeTab === tabName 
-            ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
+    const tabClasses = (tabName: UserManagementTab) =>
+        `px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 border-b-2 ${activeTab === tabName
+            ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
             : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
         }`;
 
@@ -316,10 +315,10 @@ export const UserManagement: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        
+
                         {/* User list */}
                         <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                             <input 
+                            <input
                                 type="checkbox"
                                 id="select-all-users"
                                 name="select-all-users"
@@ -349,7 +348,7 @@ export const UserManagement: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                                         <span className="text-xs font-semibold text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-900/50 py-1 px-2 rounded-full">{roles.find(r => r.id === user.role)?.name || 'Ukendt'}</span>
+                                        <span className="text-xs font-semibold text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-900/50 py-1 px-2 rounded-full">{roles.find(r => r.id === user.role)?.name || 'Ukendt'}</span>
                                         {settings.enablePoints !== false && (
                                             <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/50 py-1 px-2 rounded-full">{user.points}p</span>
                                         )}
@@ -371,10 +370,10 @@ export const UserManagement: React.FC = () => {
                                 <input id="new-user-email" name="new-user-email" aria-label="Email" type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email" className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                                 <div className="sm:col-span-2">
                                     <label htmlFor="new-user-role" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Vælg Rolle</label>
-                                    <select 
+                                    <select
                                         id="new-user-role"
-                                        value={newUserRole} 
-                                        onChange={e => setNewUserRole(e.target.value)} 
+                                        value={newUserRole}
+                                        onChange={e => setNewUserRole(e.target.value)}
                                         className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
                                     >
                                         {assignableRoles.map(role => (
@@ -386,26 +385,26 @@ export const UserManagement: React.FC = () => {
                             <button onClick={() => handleAddUser(newUserName, newUserEmail, newUserRole)} className="mt-3 w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Opret Bruger & Send Invitation</button>
                         </div>
                         <div className="pt-6 border-t dark:border-slate-700">
-                             <h3 className="text-xl font-semibold mb-2 dark:text-slate-100">...eller Importer fra CSV</h3>
-                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">CSV skal indeholde kolonnerne 'Navn' og 'Email'.</p>
+                            <h3 className="text-xl font-semibold mb-2 dark:text-slate-100">...eller Importer fra CSV</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">CSV skal indeholde kolonnerne 'Navn' og 'Email'.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="csv-role-select" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Tildel rolle ved import</label>
-                                    <select id="csv-role-select" value={csvImportRole} onChange={e => setCsvImportRole(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                                    <select id="csv-role-select" name="csv-role-select" value={csvImportRole} onChange={e => setCsvImportRole(e.target.value)} className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
                                         {assignableRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label htmlFor="csv-import" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Vælg CSV-fil</label>
                                     <div className="flex gap-2">
-                                        <input id="csv-import" type="file" accept=".csv" onChange={handleCsvImport} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900" />
+                                        <input id="csv-import" name="csv-import" type="file" accept=".csv" onChange={handleCsvImport} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/50 dark:file:text-emerald-300 dark:hover:file:bg-emerald-900" />
                                         <button onClick={handleDownloadTemplate} className="text-sm bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-md font-medium whitespace-nowrap">
                                             Hent Skabelon
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                             {importStatus && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{importStatus}</p>}
+                            {importStatus && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{importStatus}</p>}
                         </div>
                     </div>
                 )}

@@ -34,7 +34,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSettings(data.settings); setShifts(data.shifts); setShiftRoles(data.shiftRoles);
             setShiftTrades(data.shiftTrades); setGalleryImages(data.galleryImages);
             if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
-            if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
         } catch (error) {
             console.error("Kunne ikke hente data, bruger mock data i stedet", error);
             // Fallback til mock data
@@ -42,9 +41,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCategories(initialCategories); setShiftRoleTypes(['Vagtleder', 'Frivillig', 'Tekniker']);
             setSettings(initialSettings); setShifts(initialShifts); setShiftRoles(initialShiftRoles);
             setShiftTrades([]); setGalleryImages([]);
-
-            // Set mock logged in user for testing convenience, or null
-            // setCurrentUser(initialUsers[0]); // Optional: auto-login as admin
         }
         finally { setIsLoading(false); }
     };
@@ -86,8 +82,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const createdTask = await api.createTask(newTaskData) as Task;
             setTasks(prev => [...prev, createdTask]);
             toast.success(`Opgaven "${createdTask.title}" er oprettet.`);
-        } catch (e) { toast.error("Fejl ved oprettelse af opgave"); }
-    }, []);
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            const mockTask = {
+                ...newTaskData,
+                id: 'mock_' + Date.now(),
+                created_by: currentUser?.id,
+                is_completed: false
+            };
+            setTasks(prev => [...prev, mockTask as Task]);
+            toast.success(`Opgaven "${newTaskData.title}" er oprettet (Mock).`);
+        }
+    }, [currentUser]);
 
     const handleSignUp = useCallback(async (taskId: string) => {
         try {
@@ -95,8 +101,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSignedUpTaskIds(prev => [...prev, taskId]);
             setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed - 1 } : t));
             toast.success("Du er tilmeldt!");
-        } catch (e) { toast.error("Kunne ikke tilmelde opgave"); }
-    }, []);
+        } catch (e) {
+            console.error("API Signup Error, using mock:", e);
+            // Mock Data Fallback
+            if (!signedUpTaskIds.includes(taskId)) {
+                setSignedUpTaskIds(prev => [...prev, taskId]);
+                setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed - 1 } : t));
+                toast.success("Du er tilmeldt (Mock)!");
+            }
+        }
+    }, [signedUpTaskIds]);
 
     const handleUnregister = useCallback(async (taskId: string) => {
         try {
@@ -104,7 +118,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSignedUpTaskIds(prev => prev.filter(id => id !== taskId));
             setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed + 1 } : t));
             toast.success("Du er afmeldt.");
-        } catch (e) { toast.error("Fejl ved afmelding"); }
+        } catch (e) {
+            console.error("API Unregister Error, using mock:", e);
+            setSignedUpTaskIds(prev => prev.filter(id => id !== taskId));
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed + 1 } : t));
+            toast.success("Du er afmeldt (Mock).");
+        }
     }, []);
 
     const handleProfileSave = useCallback(async (profileUpdate: Partial<Profile>) => {
@@ -121,19 +140,71 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleTakeShiftRole = useCallback(async (shiftRoleId: string) => {
         try {
             await api.takeShiftRole(shiftRoleId);
-            if (currentUser) {
-                setShiftRoles(prev => prev.map(r => r.id === shiftRoleId ? { ...r, userId: currentUser.id } : r));
-                toast.success("Vagt taget!");
-            }
-        } catch (e) { toast.error("Kunne ikke tage vagt."); }
+            setShiftRoles(prev => prev.map(sr => sr.id === shiftRoleId ? { ...sr, userId: currentUser?.id || null } : sr));
+            toast.success("Vagt taget.");
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setShiftRoles(prev => prev.map(sr => sr.id === shiftRoleId ? { ...sr, userId: currentUser?.id || null } : sr));
+            toast.success("Vagt taget (Mock).");
+        }
     }, [currentUser]);
 
     const handleLeaveShiftRole = useCallback(async (shiftRoleId: string) => {
         try {
             await api.leaveShiftRole(shiftRoleId);
-            setShiftRoles(prev => prev.map(r => r.id === shiftRoleId ? { ...r, userId: null } : r));
+            setShiftRoles(prev => prev.map(sr => sr.id === shiftRoleId ? { ...sr, userId: null } : sr));
             toast.success("Du har forladt vagten.");
-        } catch (e) { toast.error("Fejl ved forladelse af vagt"); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setShiftRoles(prev => prev.map(sr => sr.id === shiftRoleId ? { ...sr, userId: null } : sr));
+            toast.success("Du har forladt vagten (Mock).");
+        }
+    }, []);
+
+    const handleInitiateShiftTrade = useCallback(async (shiftRoleId: string) => {
+        try {
+            await api.initiateShiftTrade(shiftRoleId);
+            const newTrade: ShiftTrade = { id: `trade_${Date.now()}`, shiftRoleId, offeringUserId: currentUser?.id || '', status: 'PENDING', createdAt: new Date().toISOString() };
+            setShiftTrades(prev => [...prev, newTrade]);
+            toast.success("Bytte anmodet.");
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            const newTrade: ShiftTrade = { id: `trade_${Date.now()}`, shiftRoleId, offeringUserId: currentUser?.id || '', status: 'PENDING', createdAt: new Date().toISOString() };
+            setShiftTrades(prev => [...prev, newTrade]);
+            toast.success("Bytte anmodet (Mock).");
+        }
+    }, [currentUser]);
+
+    const handleAcceptShiftTrade = useCallback(async (tradeId: string) => {
+        try {
+            await api.acceptShiftTrade(tradeId);
+            const trade = shiftTrades.find(t => t.id === tradeId);
+            if (trade) {
+                setShiftRoles(prev => prev.map(sr => sr.id === trade.shiftRoleId ? { ...sr, userId: currentUser?.id || null } : sr));
+                setShiftTrades(prev => prev.filter(t => t.id !== tradeId));
+                toast.success("Bytte accepteret.");
+            }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            const trade = shiftTrades.find(t => t.id === tradeId);
+            if (trade) {
+                setShiftRoles(prev => prev.map(sr => sr.id === trade.shiftRoleId ? { ...sr, userId: currentUser?.id || null } : sr));
+                setShiftTrades(prev => prev.filter(t => t.id !== tradeId));
+                toast.success("Bytte accepteret (Mock).");
+            }
+        }
+    }, [shiftTrades, currentUser]);
+
+    const handleCancelShiftTrade = useCallback(async (tradeId: string) => {
+        try {
+            await api.cancelShiftTrade(tradeId);
+            setShiftTrades(prev => prev.filter(t => t.id !== tradeId));
+            toast.success("Bytte annulleret.");
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setShiftTrades(prev => prev.filter(t => t.id !== tradeId));
+            toast.success("Bytte annulleret (Mock).");
+        }
     }, []);
 
     const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
@@ -141,7 +212,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.saveSettings(newSettings);
             setSettings(newSettings);
             toast.success("Indstillinger gemt.");
-        } catch (e) { toast.error("Kunne ikke gemme indstillinger."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setSettings(newSettings);
+            toast.success("Indstillinger gemt (Mock).");
+        }
     }, []);
 
     const handleAddCategory = useCallback(async (name: string) => {
@@ -149,7 +224,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.addCategory(name);
             setCategories(prev => [...prev, name].sort());
             toast.success("Kategori tilføjet.");
-        } catch (e) { toast.error("Fejl ved tilføjelse."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setCategories(prev => [...prev, name].sort());
+            toast.success("Kategori tilføjet (Mock).");
+        }
     }, []);
 
     const handleDeleteCategory = useCallback(async (name: string) => {
@@ -157,7 +236,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.deleteCategory(name);
             setCategories(prev => prev.filter(c => c !== name));
             toast.success("Kategori slettet.");
-        } catch (e) { toast.error("Fejl ved sletning."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setCategories(prev => prev.filter(c => c !== name));
+            toast.success("Kategori slettet (Mock).");
+        }
     }, []);
 
     const handleSaveRole = useCallback(async (role: Role) => {
@@ -168,7 +251,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return exists ? prev.map(r => r.id === role.id ? role : r) : [...prev, role];
             });
             toast.success("Rolle gemt.");
-        } catch (e) { toast.error("Kunne ikke gemme rolle."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setRoles(prev => {
+                const exists = prev.some(r => r.id === role.id);
+                return exists ? prev.map(r => r.id === role.id ? role : r) : [...prev, role];
+            });
+            toast.success("Rolle gemt (Mock).");
+        }
     }, []);
 
     const handleDeleteRole = useCallback(async (roleId: string) => {
@@ -176,7 +266,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.deleteRole(roleId);
             setRoles(prev => prev.filter(r => r.id !== roleId));
             toast.success("Rolle slettet.");
-        } catch (e) { toast.error("Kunne ikke slette rolle."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setRoles(prev => prev.filter(r => r.id !== roleId));
+            toast.success("Rolle slettet (Mock).");
+        }
     }, []);
 
     const handleSaveUser = useCallback(async (user: User) => {
@@ -186,8 +280,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const exists = prev.some(u => u.id === user.id);
                 return exists ? prev.map(u => u.id === user.id ? user : u) : [...prev, user];
             });
+            toast.success("Bruger gemt.");
             return true;
-        } catch (e) { toast.error("Kunne ikke gemme bruger."); return false; }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setUsers(prev => {
+                const exists = prev.some(u => u.id === user.id);
+                return exists ? prev.map(u => u.id === user.id ? user : u) : [...prev, user];
+            });
+            toast.success("Bruger gemt (Mock).");
+            return true;
+        }
     }, []);
 
     const handleDeleteUser = useCallback(async (userId: string) => {
@@ -195,15 +298,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await api.deleteUser(userId);
             setUsers(prev => prev.filter(u => u.id !== userId));
             toast.success("Bruger slettet.");
-        } catch (e) { toast.error("Kunne ikke slette bruger."); }
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setUsers(prev => prev.filter(u => u.id !== userId));
+            toast.success("Bruger slettet (Mock).");
+        }
     }, []);
 
     const handlePasswordReset = (email: string, newPass: string) => true;
     const handleForgotPasswordRequest = (email: string): 'success' => 'success';
     const sendEmailNotification = () => { };
-    const handleInitiateShiftTrade = () => { };
-    const handleAcceptShiftTrade = () => { };
-    const handleCancelShiftTrade = () => { };
 
     if (isLoading) {
         return <div className="flex h-screen justify-center items-center text-emerald-600 font-semibold">Indlæser FrivilligPortalen...</div>;
@@ -227,4 +331,4 @@ export const useData = () => {
     const context = useContext(DataContext);
     if (!context) throw new Error('useData must be used within DataProvider');
     return context;
-}
+};
