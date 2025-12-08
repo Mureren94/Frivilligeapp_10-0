@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
 import toast from 'react-hot-toast';
@@ -84,30 +83,28 @@ const RoleEditModal: React.FC<RoleEditModalProps> = ({ role, onSave, onClose }) 
 };
 
 export const RoleManagement: React.FC = () => {
-    const { roles, setRoles, users } = useData();
+    // FIX: Vi henter handleSaveRole og handleDeleteRole fra DataContext, som bruger API'et
+    const { roles, users, handleSaveRole, handleDeleteRole } = useData();
     const [editingRole, setEditingRole] = useState<Role | (Partial<Role> & { permissions: PermissionId[] }) | null>(null);
 
-    const handleSaveRole = (roleToSave: Role) => {
-        setRoles(prev => {
-            const exists = prev.some(r => r.id === roleToSave.id);
-            if (exists) {
-                return prev.map(r => r.id === roleToSave.id ? roleToSave : r);
-            }
-            return [...prev, roleToSave];
-        });
-        toast.success(`Rollen "${roleToSave.name}" er gemt.`);
-        setEditingRole(null);
+    const onSaveRole = async (roleToSave: Role) => {
+        try {
+            await handleSaveRole(roleToSave);
+            // toast success håndteres i DataContext
+            setEditingRole(null);
+        } catch (e) {
+            // fejl håndteres i DataContext
+        }
     };
 
-    const handleDeleteRole = (roleId: string) => {
+    const onDeleteRole = async (roleId: string) => {
         const roleInUse = users.some(u => u.role === roleId);
         if (roleInUse) {
             toast.error("Kan ikke slette en rolle, der er tildelt en eller flere brugere.");
             return;
         }
         if (window.confirm("Er du sikker på, du vil slette denne rolle?")) {
-            setRoles(prev => prev.filter(r => r.id !== roleId));
-            toast.success("Rollen er slettet.");
+            await handleDeleteRole(roleId);
         }
     };
     
@@ -130,7 +127,7 @@ export const RoleManagement: React.FC = () => {
                         <div className="flex items-center gap-2 mt-2 sm:mt-0">
                             <button onClick={() => setEditingRole(role)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-1" title="Rediger rolle"><EditIcon /></button>
                             <button 
-                                onClick={() => handleDeleteRole(role.id)} 
+                                onClick={() => onDeleteRole(role.id)} 
                                 disabled={!!role.is_default || isRoleInUse} 
                                 className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 disabled:opacity-40 disabled:cursor-not-allowed" 
                                 title={
@@ -149,7 +146,7 @@ export const RoleManagement: React.FC = () => {
             {editingRole && (
                 <RoleEditModal 
                     role={editingRole}
-                    onSave={handleSaveRole}
+                    onSave={onSaveRole}
                     onClose={() => setEditingRole(null)}
                 />
             )}

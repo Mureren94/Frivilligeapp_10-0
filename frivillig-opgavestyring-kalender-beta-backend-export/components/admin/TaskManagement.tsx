@@ -246,7 +246,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onClose }) 
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Billede</label>
-                                <TaskImageSelector currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
+                                <TaskImageSelector idPrefix="edit-task" currentImage={editedTask.image} onImageChange={(base64) => setEditedTask(prev => ({ ...prev, image: base64 }))} />
                             </div>
                             <div>
                                 <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Kategori</label>
@@ -294,7 +294,7 @@ type TaskManagementTab = 'create' | 'tasks' | 'templates' | 'categories';
 
 // --- Main Component ---
 export const TaskManagement: React.FC = () => {
-    const { categories, setCategories, tasks, setTasks, currentUser, users, userTaskSignups, setUsers, settings, sendEmailNotification } = useData();
+    const { categories, setCategories, tasks, setTasks, currentUser, users, userTaskSignups, setUsers, settings, sendEmailNotification, handleCreateTask } = useData();
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TaskManagementTab>('tasks');
 
@@ -355,7 +355,7 @@ export const TaskManagement: React.FC = () => {
         setNewTask(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : (['points', 'volunteers_needed', 'estimated_time'].includes(name) ? parseInt(value) || 0 : (name === 'repeat_frequency' ? Math.max(1, parseInt(value) || 1) : value)) }));
     };
 
-    const handleAddTask = () => {
+    const handleAddTask = async () => {
         setNewTaskError('');
         // FIX: Tjek for falsy values, men tillad 0 for numeriske værdier hvor relevant
         if (!newTask.title || !newTask.task_date || !newTask.category) { 
@@ -367,14 +367,16 @@ export const TaskManagement: React.FC = () => {
         if (!newTask.is_template && selectedDate < now) { setNewTaskError('Datoen for en ny opgave kan ikke være i fortiden.'); return; }
         if (settings.enablePoints !== false && (newTask.points < minPoints || newTask.points > maxPoints)) { setNewTaskError(`Point skal være mellem ${minPoints} og ${maxPoints}.`); return; }
 
-        const createdTask: Task = { ...newTask, id: generateId(), is_completed: false, created_by: currentUser?.id };
-        setTasks(prevTasks => [...prevTasks, createdTask]);
-        setNewTask(initialNewTaskState);
-        toast.success(`Opgaven "${createdTask.title}" er oprettet.`);
-        if (!createdTask.is_template) { sendEmailNotification('new_task', { task: createdTask }); }
+        try {
+            await handleCreateTask(newTask); // Kalder DataContext's handleCreateTask som bruger api.createTask
+            setNewTask(initialNewTaskState);
+            // toast success håndteres i DataContext
+        } catch (e) {
+            toast.error("Kunne ikke oprette opgave.");
+        }
     };
 
-    const handleTaskUpdate = <K extends keyof Task>(taskId: string, field: K, value: Task[K]) => {
+    const handleTaskUpdate = async <K extends keyof Task>(taskId: string, field: K, value: Task[K]) => {
         const task = tasks.find(t => t.id === taskId);
         if (settings.enablePoints !== false && field === 'is_completed' && value === true && task && !task.is_completed) {
             const signedUpEmails = Object.keys(userTaskSignups).filter((email) => userTaskSignups[email].includes(taskId));
@@ -383,20 +385,40 @@ export const TaskManagement: React.FC = () => {
                  toast.success(`${signedUpEmails.length} bruger(e) har fået ${task.points} point for fuldførelse!`);
             }
         }
-         setTasks(tasks.map(t => t.id === taskId ? { ...t, [field]: value } : t));
+        
+        try {
+            const taskToUpdate = tasks.find(t => t.id === taskId);
+            if (taskToUpdate) {
+                const updatedTask = { ...taskToUpdate, [field]: value };
+                await api.updateTask(updatedTask);
+                setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+            }
+        } catch (e) {
+            toast.error("Kunne ikke opdatere opgave.");
+        }
     };
     
-    const handleSaveEditedTask = (updatedTask: Task) => {
-        setTasks(prevTasks => prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-        setEditingTask(null);
-        toast.success(`Opgaven "${updatedTask.title}" er opdateret.`);
+    const handleSaveEditedTask = async (updatedTask: Task) => {
+        try {
+            await api.updateTask(updatedTask);
+            setTasks(prevTasks => prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+            setEditingTask(null);
+            toast.success(`Opgaven "${updatedTask.title}" er opdateret.`);
+        } catch (e) {
+            toast.error("Kunne ikke opdatere opgave.");
+        }
     };
 
-    const handleDeleteTask = (taskId: string) => {
+    const handleDeleteTask = async (taskId: string) => {
          if (window.confirm(`Er du sikker på, du vil slette denne opgave?`)) {
-            const taskToDelete = tasks.find(t => t.id === taskId);
-            setTasks(tasks.filter(t => t.id !== taskId));
-            if (taskToDelete) { toast.success(`Opgaven "${taskToDelete.title}" er slettet.`); }
+            try {
+                await api.deleteTask(taskId);
+                const taskToDelete = tasks.find(t => t.id === taskId);
+                setTasks(tasks.filter(t => t.id !== taskId));
+                if (taskToDelete) { toast.success(`Opgaven "${taskToDelete.title}" er slettet.`); }
+            } catch (e) {
+                toast.error("Kunne ikke slette opgave.");
+            }
         }
     };
 
@@ -433,14 +455,22 @@ export const TaskManagement: React.FC = () => {
     const handleToggleSelectTemplate = (templateId: string) => setSelectedTemplateIds(prev => prev.includes(templateId) ? prev.filter(id => id !== templateId) : [...prev, templateId]);
     const handleToggleSelectAllTemplates = () => selectedTemplateIds.length === filteredTemplates.length ? setSelectedTemplateIds([]) : setSelectedTemplateIds(filteredTemplates.map(t => t.id));
     
-    const handleBulkDelete = (idsToDelete: string[], type: 'task' | 'template') => {
+    const handleBulkDelete = async (idsToDelete: string[], type: 'task' | 'template') => {
         const count = idsToDelete.length;
         if (count === 0) return;
         const itemType = type === 'task' ? 'opgaver' : 'skabeloner';
         if (window.confirm(`Er du sikker på, du vil slette ${count} valgte ${itemType}?`)) {
-            setTasks(prev => prev.filter(t => !idsToDelete.includes(t.id)));
-            toast.success(`${count} ${itemType} er slettet.`);
-            if (type === 'task') setSelectedTaskIds([]); else setSelectedTemplateIds([]);
+            try {
+                // Slet én efter én via API
+                for (const id of idsToDelete) {
+                    await api.deleteTask(id);
+                }
+                setTasks(prev => prev.filter(t => !idsToDelete.includes(t.id)));
+                toast.success(`${count} ${itemType} er slettet.`);
+                if (type === 'task') setSelectedTaskIds([]); else setSelectedTemplateIds([]);
+            } catch (e) {
+                toast.error("Fejl under sletning.");
+            }
         }
     };
 

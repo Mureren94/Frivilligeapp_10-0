@@ -3,8 +3,9 @@ import { useData } from '../../contexts/DataContext';
 import type { Shift, ShiftRole, User } from '../../types';
 import { TrashIcon, EditIcon } from '../icons';
 import { generateId } from '../../utils';
+import { api } from '../../services/api';
 import toast from 'react-hot-toast';
-import { ShiftRoleTypeManagement } from './ShiftRoleTypeManagement'; // Import af vagtroller komponenten
+import { ShiftRoleTypeManagement } from './ShiftRoleTypeManagement';
 
 // --- Helper Components ---
 
@@ -163,7 +164,7 @@ export const ShiftManagement: React.FC = () => {
         { tempId: 'temp1', roleName: '', userId: null },
     ]);
 
-    const handleCreateShift = () => {
+    const handleCreateShift = async () => {
         if (!newShift.date || newShiftRoles.some(r => !r.roleName.trim())) {
             toast.error("Dato skal være udfyldt, og alle roller skal have en type.");
             return;
@@ -178,14 +179,19 @@ export const ShiftManagement: React.FC = () => {
                 roleName: role.roleName
             }));
         
-        setShifts(prev => [...prev, createdShift]);
-        setShiftRoles(prev => [...prev, ...createdRoles]);
-        setNewShift({ date: '', startTime: '', endTime: '', title: '', description: '' });
-        setNewShiftRoles([
-            { tempId: 'temp1', roleName: '', userId: null },
-        ]);
-        toast.success("Ny vagt er oprettet!");
-        setActiveTab('shifts'); // Skift tilbage til listen efter oprettelse
+        try {
+            await api.createShift({ ...createdShift, roles: createdRoles });
+            setShifts(prev => [...prev, createdShift]);
+            setShiftRoles(prev => [...prev, ...createdRoles]);
+            setNewShift({ date: '', startTime: '', endTime: '', title: '', description: '' });
+            setNewShiftRoles([
+                { tempId: 'temp1', roleName: '', userId: null },
+            ]);
+            toast.success("Ny vagt er oprettet!");
+            setActiveTab('shifts');
+        } catch (e) {
+            toast.error("Kunne ikke oprette vagt.");
+        }
     };
 
     const handleNewShiftRoleChange = (tempId: string, field: 'roleName' | 'userId', value: string | null) => {
@@ -195,27 +201,43 @@ export const ShiftManagement: React.FC = () => {
     const addRoleToNewShift = () => setNewShiftRoles(prev => [...prev, { tempId: `temp${Date.now()}`, roleName: '', userId: null }]);
     const removeRoleFromNewShift = (tempId: string) => setNewShiftRoles(prev => prev.filter(r => r.tempId !== tempId));
 
-    const handleSaveEditedShift = (updatedShift: Shift, updatedRolesData: { id?: string; roleName: string; userId: string | null }[]) => {
-        setShifts(prev => prev.map(s => s.id === updatedShift.id ? updatedShift : s));
-        const existingRoleIdsOnShift = shiftRoles.filter(r => r.shiftId === updatedShift.id).map(r => r.id);
-        const updatedRoleIds = updatedRolesData.map(r => r.id).filter(Boolean);
-        const rolesToDelete = existingRoleIdsOnShift.filter(id => !updatedRoleIds.includes(id));
-        const rolesToUpdate = updatedRolesData.filter(r => r.id && !r.id.startsWith('new-'));
-        const rolesToAdd = updatedRolesData.filter(r => r.id && r.id.startsWith('new-')).map(({ id, ...rest }) => ({...rest, id: generateId(), shiftId: updatedShift.id}));
-        setShiftRoles(prev => {
-            let nextState = prev.filter(r => !rolesToDelete.includes(r.id));
-            rolesToUpdate.forEach(updatedRole => { nextState = nextState.map(r => r.id === updatedRole.id ? { ...r, ...updatedRole } : r); });
-            return [...nextState, ...rolesToAdd];
-        });
-        toast.success(`Vagt for ${updatedShift.date} er gemt.`);
-        setEditingShift(null);
+    const handleSaveEditedShift = async (updatedShift: Shift, updatedRolesData: { id?: string; roleName: string; userId: string | null }[]) => {
+        try {
+            await api.updateShift({ ...updatedShift, roles: updatedRolesData });
+            setShifts(prev => prev.map(s => s.id === updatedShift.id ? updatedShift : s));
+            
+            // Note: Since the backend handles role updates, we should theoretically re-fetch data.
+            // For simplicity, we update local state optimistically here, assuming success.
+            // In a real app, re-fetching shiftRoles might be safer.
+            const existingRoleIdsOnShift = shiftRoles.filter(r => r.shiftId === updatedShift.id).map(r => r.id);
+            const updatedRoleIds = updatedRolesData.map(r => r.id).filter(Boolean);
+            const rolesToDelete = existingRoleIdsOnShift.filter(id => !updatedRoleIds.includes(id));
+            const rolesToUpdate = updatedRolesData.filter(r => r.id && !r.id.startsWith('new-'));
+            const rolesToAdd = updatedRolesData.filter(r => r.id && r.id.startsWith('new-')).map(({ id, ...rest }) => ({...rest, id: generateId(), shiftId: updatedShift.id}));
+            
+            setShiftRoles(prev => {
+                let nextState = prev.filter(r => !rolesToDelete.includes(r.id));
+                rolesToUpdate.forEach(updatedRole => { nextState = nextState.map(r => r.id === updatedRole.id ? { ...r, ...updatedRole } : r); });
+                return [...nextState, ...rolesToAdd];
+            });
+            
+            toast.success(`Vagt for ${updatedShift.date} er gemt.`);
+            setEditingShift(null);
+        } catch (e) {
+            toast.error("Kunne ikke gemme ændringer.");
+        }
     };
     
-    const handleDeleteShift = (shiftId: string) => {
+    const handleDeleteShift = async (shiftId: string) => {
         if (window.confirm("Er du sikker? Dette sletter vagten og alle dens roller.")) {
-            setShifts(prev => prev.filter(s => s.id !== shiftId));
-            setShiftRoles(prev => prev.filter(r => r.shiftId !== shiftId));
-            toast.success("Vagten er slettet.");
+            try {
+                await api.deleteShift(shiftId);
+                setShifts(prev => prev.filter(s => s.id !== shiftId));
+                setShiftRoles(prev => prev.filter(r => r.shiftId !== shiftId));
+                toast.success("Vagten er slettet.");
+            } catch (e) {
+                toast.error("Kunne ikke slette vagt.");
+            }
         }
     };
     
@@ -243,7 +265,7 @@ export const ShiftManagement: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const text = event.target?.result as string;
                 const lines = text.split(/\r\n|\n/).filter(line => line.trim());
@@ -257,19 +279,21 @@ export const ShiftManagement: React.FC = () => {
                 const fixedCols = [dateIndex, titleIndex, descIndex, startIndex, endIndex].filter(i => i !== -1);
                 const roleIndices = header.map((_, i) => i).filter(i => !fixedCols.includes(i));
                 if (dateIndex === -1) throw new Error("CSV mangler 'Dato' kolonne.");
-                const createdShifts: Shift[] = [];
-                const createdRoles: ShiftRole[] = [];
+                
+                let successCount = 0;
                 for (let i = 1; i < lines.length; i++) {
                     const data = lines[i].split(',');
                     const shiftId = generateId();
-                    createdShifts.push({
+                    const newShift = {
                         id: shiftId,
                         date: new Date(data[dateIndex]).toISOString().split('T')[0],
                         title: data[titleIndex] || '',
                         description: data[descIndex] || '',
                         startTime: startIndex !== -1 ? data[startIndex] : undefined,
                         endTime: endIndex !== -1 ? data[endIndex] : undefined,
-                    });
+                    };
+                    
+                    const newRoles = [];
                     roleIndices.forEach(idx => {
                         const roleName = header[idx];
                         const assignedName = data[idx]?.trim();
@@ -278,17 +302,22 @@ export const ShiftManagement: React.FC = () => {
                             const user = users.find(u => u.name.toLowerCase() === assignedName.toLowerCase());
                             assignedUserId = user ? user.id : null;
                         }
-                        createdRoles.push({
+                        newRoles.push({
                             id: generateId(),
                             shiftId,
                             roleName,
                             userId: assignedUserId,
                         });
                     });
+
+                    // API Call per row
+                    await api.createShift({ ...newShift, roles: newRoles });
+                    setShifts(prev => [...prev, newShift]);
+                    setShiftRoles(prev => [...prev, ...newRoles]);
+                    successCount++;
                 }
-                setShifts(prev => [...prev, ...createdShifts]);
-                setShiftRoles(prev => [...prev, ...createdRoles]);
-                toast.success(`Importerede ${createdShifts.length} vagter.`);
+                
+                toast.success(`Importerede ${successCount} vagter.`);
             } catch (error: any) {
                 toast.error(`Import Fejl: ${error.message}`);
                 console.error("CSV Import error:", error);
@@ -320,7 +349,23 @@ export const ShiftManagement: React.FC = () => {
 
     const handleToggleSelectShift = (shiftId: string) => { setSelectedShiftIds(prev => prev.includes(shiftId) ? prev.filter(id => id !== shiftId) : [...prev, shiftId]); };
     const handleToggleSelectAll = () => { if (selectedShiftIds.length === filteredAndSortedShifts.length) { setSelectedShiftIds([]); } else { setSelectedShiftIds(filteredAndSortedShifts.map(s => s.id)); } };
-    const handleBulkDeleteShifts = () => { if (selectedShiftIds.length === 0) return; if (window.confirm(`Slet ${selectedShiftIds.length} vagter?`)) { setShifts(prev => prev.filter(s => !selectedShiftIds.includes(s.id))); setShiftRoles(prev => prev.filter(r => !selectedShiftIds.includes(r.shiftId))); toast.success("Slettet."); setSelectedShiftIds([]); } };
+    
+    const handleBulkDeleteShifts = async () => { 
+        if (selectedShiftIds.length === 0) return; 
+        if (window.confirm(`Slet ${selectedShiftIds.length} vagter?`)) { 
+            try {
+                for (const id of selectedShiftIds) {
+                    await api.deleteShift(id);
+                }
+                setShifts(prev => prev.filter(s => !selectedShiftIds.includes(s.id))); 
+                setShiftRoles(prev => prev.filter(r => !selectedShiftIds.includes(r.shiftId))); 
+                toast.success("Slettet."); 
+                setSelectedShiftIds([]); 
+            } catch(e) {
+                toast.error("Fejl under sletning.");
+            }
+        } 
+    };
 
     const tabClasses = (tabName: ShiftManagementTab) => 
         `px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 border-b-2 ${

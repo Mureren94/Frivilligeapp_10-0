@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useMemo } from 'react';
 import type { User } from '../../types';
 import { useData } from '../../contexts/DataContext';
@@ -84,7 +81,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onSave, onClose }) 
 type UserManagementTab = 'manage' | 'create';
 
 export const UserManagement: React.FC = () => {
-    const { users, setUsers, currentUser, handleForgotPasswordRequest, roles, settings } = useData();
+    // FIX: Vi henter handleSaveUser og handleDeleteUser fra DataContext
+    const { users, currentUser, handleForgotPasswordRequest, roles, settings, handleSaveUser, handleDeleteUser } = useData();
     const [activeTab, setActiveTab] = useState<UserManagementTab>('manage');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -107,7 +105,7 @@ export const UserManagement: React.FC = () => {
         return roles.filter(r => r.id !== 'superadmin');
     }, [roles, currentUser]);
 
-    const handleAddUser = (name: string, email: string, roleId: string): boolean => {
+    const handleAddUser = async (name: string, email: string, roleId: string) => {
         if (name && email) {
             if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
                 toast.error(`En bruger med emailen ${email} eksisterer allerede.`);
@@ -134,39 +132,49 @@ export const UserManagement: React.FC = () => {
                     newsletter: true
                 }
             };
-            setUsers(prev => [...prev, newUser]);
-            toast.success(`Bruger '${name}' oprettet som ${roles.find(r => r.id === roleId)?.name}. Der er sendt en email for at sætte adgangskode.`);
-            handleForgotPasswordRequest(email); // send reset link
-            return true;
+            
+            // FIX: Kald API via DataContext
+            const success = await handleSaveUser(newUser);
+            if (success) {
+                toast.success(`Bruger '${name}' oprettet som ${roles.find(r => r.id === roleId)?.name}. Der er sendt en email for at sætte adgangskode.`);
+                handleForgotPasswordRequest(email); // send reset link
+                setNewUserName(''); 
+                setNewUserEmail('');
+            }
+            return success;
         }
         return false;
     };
 
-    const handleUserUpdate = (updatedUser: User) => {
-        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-        setEditingUser(null);
-        toast.success(`Bruger ${updatedUser.name} er opdateret.`);
+    const onUserUpdate = async (updatedUser: User) => {
+        const success = await handleSaveUser(updatedUser);
+        if (success) {
+            setEditingUser(null);
+            toast.success(`Bruger ${updatedUser.name} er opdateret.`);
+        }
     };
 
-    const handleDeleteUser = (userId: string) => {
+    const onDeleteUser = async (userId: string) => {
         if (userId === currentUser?.id) {
             toast.error("Du kan ikke slette dig selv.");
             return;
         }
         if (window.confirm("Er du sikker på, du vil slette denne bruger?")) {
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            toast.success("Brugeren er slettet.");
+            await handleDeleteUser(userId);
         }
     };
     
-    const handleBulkDelete = () => {
+    const handleBulkDelete = async () => {
         if (selectedUserIds.length === 0) return;
         if (selectedUserIds.includes(currentUser?.id || '')) {
             toast.error("Du kan ikke slette dig selv som en del af en massehandling.");
             return;
         }
         if (window.confirm(`Er du sikker på, du vil slette ${selectedUserIds.length} valgte brugere?`)) {
-            setUsers(prev => prev.filter(u => !selectedUserIds.includes(u.id)));
+            // FIX: Loop gennem ID'er og slet dem
+            for (const id of selectedUserIds) {
+                await handleDeleteUser(id);
+            }
             toast.success(`${selectedUserIds.length} brugere blev slettet.`);
             setSelectedUserIds([]);
         }
@@ -204,7 +212,7 @@ export const UserManagement: React.FC = () => {
         }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 setImportStatus('Importerer...');
                 const text = e.target?.result as string;
@@ -222,7 +230,6 @@ export const UserManagement: React.FC = () => {
                 let createdCount = 0;
                 let skippedCount = 0;
 
-                const usersToAdd: User[] = [];
                 const existingEmails = new Set(users.map(u => u.email.toLowerCase()));
 
                 for (let i = 1; i < lines.length; i++) {
@@ -243,16 +250,16 @@ export const UserManagement: React.FC = () => {
                             role: csvImportRole,
                             points: 0,
                         };
-                        usersToAdd.push(newUser);
+                        
+                        // FIX: Kald API for hver bruger
+                        await handleSaveUser(newUser);
+                        handleForgotPasswordRequest(newUser.email);
+                        
                         existingEmails.add(email.toLowerCase());
                         createdCount++;
                     }
                 }
                 
-                setUsers(prev => [...prev, ...usersToAdd]);
-
-                usersToAdd.forEach(user => handleForgotPasswordRequest(user.email));
-
                 setImportStatus(`Færdig! ${createdCount} brugere oprettet. ${skippedCount} sprunget over (eksisterende email).`);
                 toast.success(`${createdCount} brugere importeret. Links til nulstilling af adgangskode er sendt.`);
 
@@ -348,7 +355,7 @@ export const UserManagement: React.FC = () => {
                                         )}
                                         <button onClick={() => setEditingUser(user)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-1" title="Rediger bruger"><EditIcon /></button>
                                         <button onClick={() => handleForgotPasswordRequest(user.email)} className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 p-1" title="Send nulstil adgangskode"><KeyIcon /></button>
-                                        <button onClick={() => handleDeleteUser(user.id)} disabled={user.id === currentUser?.id} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 disabled:opacity-40 disabled:cursor-not-allowed" title="Slet bruger"><TrashIcon /></button>
+                                        <button onClick={() => onDeleteUser(user.id)} disabled={user.id === currentUser?.id} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-1 disabled:opacity-40 disabled:cursor-not-allowed" title="Slet bruger"><TrashIcon /></button>
                                     </div>
                                 </div>
                             ))}
@@ -376,7 +383,7 @@ export const UserManagement: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
-                            <button onClick={() => { if (handleAddUser(newUserName, newUserEmail, newUserRole)) { setNewUserName(''); setNewUserEmail(''); } }} className="mt-3 w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Opret Bruger & Send Invitation</button>
+                            <button onClick={() => handleAddUser(newUserName, newUserEmail, newUserRole)} className="mt-3 w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Opret Bruger & Send Invitation</button>
                         </div>
                         <div className="pt-6 border-t dark:border-slate-700">
                              <h3 className="text-xl font-semibold mb-2 dark:text-slate-100">...eller Importer fra CSV</h3>
@@ -404,7 +411,7 @@ export const UserManagement: React.FC = () => {
                 )}
             </div>
 
-            {editingUser && <EditUserModal user={editingUser} onSave={handleUserUpdate} onClose={() => setEditingUser(null)} />}
+            {editingUser && <EditUserModal user={editingUser} onSave={onUserUpdate} onClose={() => setEditingUser(null)} />}
         </div>
     );
 };
