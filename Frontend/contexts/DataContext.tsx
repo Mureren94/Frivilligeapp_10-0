@@ -3,6 +3,7 @@ import type { Task, User, IDataContext, AppSettings, Role, Shift, ShiftRole, Shi
 import type { PermissionId } from '../permissions';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
+import { initialTasks, initialUsers, initialRoles, initialCategories, initialSettings, initialShifts, initialShiftRoles } from '../initialData';
 
 const DataContext = createContext<IDataContext | null>(null);
 
@@ -33,7 +34,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSettings(data.settings); setShifts(data.shifts); setShiftRoles(data.shiftRoles);
             setShiftTrades(data.shiftTrades); setGalleryImages(data.galleryImages);
             if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
-        } catch (error) { console.error("Kunne ikke hente data", error); } 
+            if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
+        } catch (error) {
+            console.error("Kunne ikke hente data, bruger mock data i stedet", error);
+            // Fallback til mock data
+            setUsers(initialUsers); setRoles(initialRoles); setTasks(initialTasks);
+            setCategories(initialCategories); setShiftRoleTypes(['Vagtleder', 'Frivillig', 'Tekniker']);
+            setSettings(initialSettings); setShifts(initialShifts); setShiftRoles(initialShiftRoles);
+            setShiftTrades([]); setGalleryImages([]);
+
+            // Set mock logged in user for testing convenience, or null
+            // setCurrentUser(initialUsers[0]); // Optional: auto-login as admin
+        }
         finally { setIsLoading(false); }
     };
 
@@ -81,7 +93,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await api.signUpTask(taskId);
             setSignedUpTaskIds(prev => [...prev, taskId]);
-            setTasks(prev => prev.map(t => t.id === taskId ? {...t, volunteers_needed: t.volunteers_needed - 1} : t));
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed - 1 } : t));
             toast.success("Du er tilmeldt!");
         } catch (e) { toast.error("Kunne ikke tilmelde opgave"); }
     }, []);
@@ -90,7 +102,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await api.unregisterTask(taskId);
             setSignedUpTaskIds(prev => prev.filter(id => id !== taskId));
-             setTasks(prev => prev.map(t => t.id === taskId ? {...t, volunteers_needed: t.volunteers_needed + 1} : t));
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, volunteers_needed: t.volunteers_needed + 1 } : t));
             toast.success("Du er afmeldt.");
         } catch (e) { toast.error("Fejl ved afmelding"); }
     }, []);
@@ -188,10 +200,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handlePasswordReset = (email: string, newPass: string) => true;
     const handleForgotPasswordRequest = (email: string): 'success' => 'success';
-    const sendEmailNotification = () => {};
-    const handleInitiateShiftTrade = () => {};
-    const handleAcceptShiftTrade = () => {};
-    const handleCancelShiftTrade = () => {};
+    const sendEmailNotification = () => { };
+    const handleInitiateShiftTrade = () => { };
+    const handleAcceptShiftTrade = () => { };
+    const handleCancelShiftTrade = () => { };
 
     if (isLoading) {
         return <div className="flex h-screen justify-center items-center text-emerald-600 font-semibold">Indlæser FrivilligPortalen...</div>;
