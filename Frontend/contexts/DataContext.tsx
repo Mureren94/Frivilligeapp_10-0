@@ -162,14 +162,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const handleInitiateShiftTrade = useCallback(async (shiftRoleId: string) => {
+        const tradeId = `trade_${Date.now()}`;
         try {
-            await api.initiateShiftTrade(shiftRoleId);
-            const newTrade: ShiftTrade = { id: `trade_${Date.now()}`, shiftRoleId, offeringUserId: currentUser?.id || '', status: 'PENDING', createdAt: new Date().toISOString() };
+            await api.initiateShiftTrade({ id: tradeId, shiftRoleId });
+            const newTrade: ShiftTrade = { id: tradeId, shiftRoleId, offeringUserId: currentUser?.id || '', acceptingUserId: null, status: 'PENDING', createdAt: new Date().toISOString() };
             setShiftTrades(prev => [...prev, newTrade]);
             toast.success("Bytte anmodet.");
         } catch (e) {
             console.error("API Error, using mock:", e);
-            const newTrade: ShiftTrade = { id: `trade_${Date.now()}`, shiftRoleId, offeringUserId: currentUser?.id || '', status: 'PENDING', createdAt: new Date().toISOString() };
+            const newTrade: ShiftTrade = { id: tradeId, shiftRoleId, offeringUserId: currentUser?.id || '', acceptingUserId: null, status: 'PENDING', createdAt: new Date().toISOString() };
             setShiftTrades(prev => [...prev, newTrade]);
             toast.success("Bytte anmodet (Mock).");
         }

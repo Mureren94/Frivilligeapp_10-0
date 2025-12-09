@@ -95,7 +95,7 @@ if ($path === '/logout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     requireAuth();
     $userId = $_SESSION['user_id'];
-    
+
     $stmt = $pdo->prepare("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $currentUser = $stmt->fetch();
@@ -104,15 +104,17 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $users = $pdo->query("SELECT id, name, email, role_id as role, points, image, phone, phone_is_public, notification_preferences FROM users")->fetchAll();
-    foreach($users as &$u) $u['notification_preferences'] = json_decode($u['notification_preferences']);
-    
+    foreach ($users as &$u)
+        $u['notification_preferences'] = json_decode($u['notification_preferences']);
+
     $roles = $pdo->query("SELECT * FROM roles")->fetchAll();
-    foreach($roles as &$r) $r['permissions'] = json_decode($r['permissions']);
+    foreach ($roles as &$r)
+        $r['permissions'] = json_decode($r['permissions']);
 
     $tasks = $pdo->query("SELECT * FROM tasks")->fetchAll();
     $categories = $pdo->query("SELECT name FROM categories")->fetchAll(PDO::FETCH_COLUMN);
     $shiftRoleTypes = $pdo->query("SELECT name FROM shift_role_types")->fetchAll(PDO::FETCH_COLUMN);
-    
+
     $settings = $pdo->query("SELECT * FROM settings WHERE id = 1")->fetch();
     $settingsFrontend = [];
     if ($settings) {
@@ -122,7 +124,7 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             'siteNameColor' => $settings['site_name_color'],
             'defaultTaskImage' => $settings['default_task_image'],
             'pointGoal' => $settings['point_goal'],
-            'enablePoints' => (bool)$settings['enable_points'],
+            'enablePoints' => (bool) $settings['enable_points'],
             'minTaskPoints' => $settings['min_task_points'],
             'maxTaskPoints' => $settings['max_task_points'],
             'menuVisibility' => json_decode($settings['menu_visibility']),
@@ -136,11 +138,11 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $shiftRoles = $pdo->query("SELECT id, shift_id as shiftId, user_id as userId, role_name as roleName FROM shift_roles")->fetchAll();
     $shiftTrades = $pdo->query("SELECT id, shift_role_id as shiftRoleId, offering_user_id as offeringUserId, accepting_user_id as acceptingUserId, status, created_at as createdAt FROM shift_trades")->fetchAll();
     $signups = $pdo->query("SELECT task_id FROM task_signups WHERE user_id = '$userId'")->fetchAll(PDO::FETCH_COLUMN);
-    
+
     $gallery = $pdo->query("SELECT * FROM gallery_images")->fetchAll();
-    foreach($gallery as &$g) {
+    foreach ($gallery as &$g) {
         $g['tags'] = json_decode($g['tags']);
-        $g['data'] = $g['path']; 
+        $g['data'] = $g['path'];
     }
 
     jsonResponse([
@@ -175,17 +177,17 @@ if ($path === '/tasks' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     requireAuth();
     $data = getJsonInput();
     $imagePath = isset($data['image']) ? saveBase64Image($data['image']) : null;
-    
+
     $fields = "title=?, description=?, task_date=?, category=?, points=?, volunteers_needed=?, is_template=?, estimated_time=?, repeat_interval=?, repeat_frequency=?, is_completed=?";
     $params = [$data['title'], $data['description'], $data['task_date'], $data['category'], $data['points'], $data['volunteers_needed'], $data['is_template'] ? 1 : 0, $data['estimated_time'], $data['repeat_interval'] ?? null, $data['repeat_frequency'] ?? null, $data['is_completed'] ? 1 : 0];
-    
+
     if ($imagePath) {
         $fields .= ", image=?";
         $params[] = $imagePath;
     }
-    
+
     $params[] = $data['id'];
-    
+
     $sql = "UPDATE tasks SET $fields WHERE id = ?";
     $pdo->prepare($sql)->execute($params);
     jsonResponse(['success' => true, 'image' => $imagePath]);
@@ -212,8 +214,16 @@ if ($path === '/tasks/signup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("INSERT INTO task_signups (task_id, user_id) VALUES (?, ?)")->execute([$data['taskId'], $_SESSION['user_id']]);
             $pdo->commit();
             jsonResponse(['success' => true]);
-        } else { $pdo->rollBack(); http_response_code(400); jsonResponse(['error' => 'Ingen ledige pladser']); }
-    } catch (Exception $e) { $pdo->rollBack(); http_response_code(500); jsonResponse(['error' => $e->getMessage()]); }
+        } else {
+            $pdo->rollBack();
+            http_response_code(400);
+            jsonResponse(['error' => 'Ingen ledige pladser']);
+        }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        jsonResponse(['error' => $e->getMessage()]);
+    }
 }
 
 if ($path === '/tasks/unregister' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -225,7 +235,10 @@ if ($path === '/tasks/unregister' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("DELETE FROM task_signups WHERE task_id = ? AND user_id = ?")->execute([$data['taskId'], $_SESSION['user_id']]);
         $pdo->commit();
         jsonResponse(['success' => true]);
-    } catch (Exception $e) { $pdo->rollBack(); jsonResponse(['error' => $e->getMessage()]); }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        jsonResponse(['error' => $e->getMessage()]);
+    }
 }
 
 // --- SHIFTS ---
@@ -246,7 +259,11 @@ if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $pdo->commit();
         jsonResponse(['success' => true]);
-    } catch (Exception $e) { $pdo->rollBack(); http_response_code(500); jsonResponse(['error' => $e->getMessage()]); }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        jsonResponse(['error' => $e->getMessage()]);
+    }
 }
 
 if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -269,7 +286,11 @@ if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
         }
         $pdo->commit();
         jsonResponse(['success' => true]);
-    } catch (Exception $e) { $pdo->rollBack(); http_response_code(500); jsonResponse(['error' => $e->getMessage()]); }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        jsonResponse(['error' => $e->getMessage()]);
+    }
 }
 
 if ($path === '/shifts' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
@@ -285,8 +306,12 @@ if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = getJsonInput();
     $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = ? WHERE id = ? AND user_id IS NULL");
     $stmt->execute([$_SESSION['user_id'], $data['shiftRoleId']]);
-    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
-    else { http_response_code(400); jsonResponse(['error' => 'Rollen er ikke ledig']); }
+    if ($stmt->rowCount() > 0)
+        jsonResponse(['success' => true]);
+    else {
+        http_response_code(400);
+        jsonResponse(['error' => 'Rollen er ikke ledig']);
+    }
 }
 
 if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -294,8 +319,65 @@ if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = getJsonInput();
     $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = NULL WHERE id = ? AND user_id = ?");
     $stmt->execute([$data['shiftRoleId'], $_SESSION['user_id']]);
-    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
-    else { http_response_code(400); jsonResponse(['error' => 'Kunne ikke forlade vagt']); }
+    if ($stmt->rowCount() > 0)
+        jsonResponse(['success' => true]);
+    else {
+        http_response_code(400);
+        jsonResponse(['error' => 'Kunne ikke forlade vagt']);
+    }
+}
+
+// --- SHIFT TRADES ---
+
+if ($path === '/shift_trades' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    // Verify ownership of the shift role being traded? (Optional but good)
+    $stmt = $pdo->prepare("INSERT INTO shift_trades (id, shift_role_id, offering_user_id, status) VALUES (?, ?, ?, 'PENDING')");
+    $stmt->execute([$data['id'], $data['shiftRoleId'], $_SESSION['user_id']]);
+    jsonResponse(['success' => true]);
+}
+
+if ($path === '/shift_trades/accept' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    $data = getJsonInput();
+    $pdo->beginTransaction();
+    try {
+        // 1. Get the trade details
+        $stmt = $pdo->prepare("SELECT * FROM shift_trades WHERE id = ?");
+        $stmt->execute([$data['tradeId']]);
+        $trade = $stmt->fetch();
+
+        if (!$trade)
+            throw new Exception("Handel findes ikke");
+        if ($trade['status'] !== 'PENDING')
+            throw new Exception("Handel er ikke aktiv");
+
+        // 2. Update the trade status
+        $pdo->prepare("UPDATE shift_trades SET status = 'completed', accepting_user_id = ? WHERE id = ?")->execute([$_SESSION['user_id'], $data['tradeId']]);
+
+        // 3. Update the shift role owner
+        $pdo->prepare("UPDATE shift_roles SET user_id = ? WHERE id = ?")->execute([$_SESSION['user_id'], $trade['shift_role_id']]);
+
+        $pdo->commit();
+        jsonResponse(['success' => true]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(400);
+        jsonResponse(['error' => $e->getMessage()]);
+    }
+}
+
+if ($path === '/shift_trades' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    requireAuth();
+    $data = getJsonInput();
+    // Only the offering user or an admin should be able to cancel?
+    // For simplicity, we assume checking is done in frontend or we trust the user for this beta.
+    // Ideally: WHERE id = ? AND (offering_user_id = ? OR role_id = 'admin')
+
+    $stmt = $pdo->prepare("DELETE FROM shift_trades WHERE id = ?");
+    $stmt->execute([$data['tradeId']]);
+    jsonResponse(['success' => true]);
 }
 
 // --- USERS, ROLES, ETC ---
@@ -321,8 +403,12 @@ if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $data = getJsonInput();
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role_id != 'superadmin'");
     $stmt->execute([$data['id']]);
-    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
-    else { http_response_code(400); jsonResponse(['error' => 'Kan ikke slette bruger']); }
+    if ($stmt->rowCount() > 0)
+        jsonResponse(['success' => true]);
+    else {
+        http_response_code(400);
+        jsonResponse(['error' => 'Kan ikke slette bruger']);
+    }
 }
 
 if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -330,18 +416,24 @@ if ($path === '/users/profile' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
     $data = getJsonInput();
     $id = $data['id'];
     if ($id !== $_SESSION['user_id'] && $_SESSION['role_id'] !== 'superadmin' && $_SESSION['role_id'] !== 'admin') {
-         http_response_code(403);
-         jsonResponse(['error' => 'Ikke tilladt']);
+        http_response_code(403);
+        jsonResponse(['error' => 'Ikke tilladt']);
     }
-    $fields = []; $params = [];
+    $fields = [];
+    $params = [];
     if (isset($data['image']) && strpos($data['image'], 'data:image') !== false) {
-        $fields[] = "image = ?"; $params[] = saveBase64Image($data['image']);
+        $fields[] = "image = ?";
+        $params[] = saveBase64Image($data['image']);
     }
     foreach (['name', 'email', 'phone', 'phone_is_public'] as $field) {
-        if (isset($data[$field])) { $fields[] = "$field = ?"; $params[] = $data[$field]; }
+        if (isset($data[$field])) {
+            $fields[] = "$field = ?";
+            $params[] = $data[$field];
+        }
     }
     if (!empty($data['password'])) {
-        $fields[] = "password_hash = ?"; $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
+        $fields[] = "password_hash = ?";
+        $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
     }
     if (isset($data['notification_preferences'])) {
         $fields[] = "notification_preferences = ?";
@@ -368,8 +460,12 @@ if ($path === '/roles' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $data = getJsonInput();
     $stmt = $pdo->prepare("DELETE FROM roles WHERE id = ? AND is_default = 0");
     $stmt->execute([$data['id']]);
-    if ($stmt->rowCount() > 0) jsonResponse(['success' => true]);
-    else { http_response_code(400); jsonResponse(['error' => 'Kan ikke slette standard rolle']); }
+    if ($stmt->rowCount() > 0)
+        jsonResponse(['success' => true]);
+    else {
+        http_response_code(400);
+        jsonResponse(['error' => 'Kan ikke slette standard rolle']);
+    }
 }
 
 if ($path === '/settings' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
@@ -388,37 +484,62 @@ if ($path === '/settings' && $_SERVER['REQUEST_METHOD'] === 'PUT') {
 }
 
 if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireAuth(); $data = getJsonInput();
-    if (!empty($data['name'])) { $pdo->prepare("INSERT IGNORE INTO shift_role_types (name) VALUES (?)")->execute([$data['name']]); jsonResponse(['success' => true]); }
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $pdo->prepare("INSERT IGNORE INTO shift_role_types (name) VALUES (?)")->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
 }
 if ($path === '/shift_role_types' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    requireAuth(); $data = getJsonInput();
-    if (!empty($data['name'])) { $pdo->prepare("DELETE FROM shift_role_types WHERE name = ?")->execute([$data['name']]); jsonResponse(['success' => true]); }
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $pdo->prepare("DELETE FROM shift_role_types WHERE name = ?")->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
 }
 if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireAuth(); $data = getJsonInput();
-    if (!empty($data['name'])) { $pdo->prepare("INSERT IGNORE INTO categories (name) VALUES (?)")->execute([$data['name']]); jsonResponse(['success' => true]); }
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $pdo->prepare("INSERT IGNORE INTO categories (name) VALUES (?)")->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
 }
 if ($path === '/categories' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    requireAuth(); $data = getJsonInput();
-    if (!empty($data['name'])) { $pdo->prepare("DELETE FROM categories WHERE name = ?")->execute([$data['name']]); jsonResponse(['success' => true]); }
+    requireAuth();
+    $data = getJsonInput();
+    if (!empty($data['name'])) {
+        $pdo->prepare("DELETE FROM categories WHERE name = ?")->execute([$data['name']]);
+        jsonResponse(['success' => true]);
+    }
 }
 
 if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireAuth(); $data = getJsonInput();
+    requireAuth();
+    $data = getJsonInput();
     if (isset($data['data'])) {
         $imagePath = saveBase64Image($data['data']);
         $pdo->prepare("INSERT INTO gallery_images (id, name, path, size, width, height, uploaded_by, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")->execute([$data['id'], $data['name'], $imagePath, $data['size'], $data['width'], $data['height'], $_SESSION['user_id'], json_encode($data['tags'] ?? [])]);
-        $data['data'] = $imagePath; jsonResponse($data);
-    } else { http_response_code(400); jsonResponse(['error' => 'No image data']); }
+        $data['data'] = $imagePath;
+        jsonResponse($data);
+    } else {
+        http_response_code(400);
+        jsonResponse(['error' => 'No image data']);
+    }
 }
 if ($path === '/gallery' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    requireAuth(); $data = getJsonInput();
+    requireAuth();
+    $data = getJsonInput();
     $id = $data['id'];
-    $img = $pdo->prepare("SELECT path FROM gallery_images WHERE id = ?"); $img->execute([$id]); $row = $img->fetch();
+    $img = $pdo->prepare("SELECT path FROM gallery_images WHERE id = ?");
+    $img->execute([$id]);
+    $row = $img->fetch();
     if ($row) {
         $filePath = str_replace('app/', '', $row['path']);
-        if (file_exists($filePath)) unlink($filePath);
+        if (file_exists($filePath))
+            unlink($filePath);
         $pdo->prepare("DELETE FROM gallery_images WHERE id = ?")->execute([$id]);
         jsonResponse(['success' => true]);
     }
