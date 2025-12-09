@@ -33,6 +33,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCategories(data.categories); setShiftRoleTypes(data.shiftRoleTypes || []);
             setSettings(data.settings); setShifts(data.shifts); setShiftRoles(data.shiftRoles);
             setShiftTrades(data.shiftTrades); setGalleryImages(data.galleryImages);
+            setAdminNotifications(data.adminNotifications || []);
             if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
         } catch (error) {
             console.error("Kunne ikke hente data, bruger mock data i stedet", error);
@@ -310,6 +311,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleForgotPasswordRequest = (email: string): 'success' => 'success';
     const sendEmailNotification = () => { };
 
+    const handleMarkNotificationsAsRead = useCallback(async () => {
+        try {
+            await api.markNotificationsAsRead();
+            setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (e) {
+            console.error("API Error, using mock:", e);
+            setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        }
+    }, []);
+
     if (isLoading) {
         return <div className="flex h-screen justify-center items-center text-emerald-600 font-semibold">Indlæser FrivilligPortalen...</div>;
     }
@@ -322,7 +333,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         handleLogin, handleLogout, handleSignUp, handleCreateTask, handleUnregister, handleProfileSave,
         handlePasswordReset, handleForgotPasswordRequest, toggleTheme, userHasPermission, sendEmailNotification,
         handleTakeShiftRole, handleLeaveShiftRole, handleInitiateShiftTrade, handleAcceptShiftTrade, handleCancelShiftTrade,
-        handleSaveSettings, handleAddCategory, handleDeleteCategory, handleSaveRole, handleDeleteRole, handleSaveUser, handleDeleteUser
+        handleSaveSettings, handleAddCategory, handleDeleteCategory, handleSaveRole, handleDeleteRole, handleSaveUser, handleDeleteUser,
+        handleMarkNotificationsAsRead
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

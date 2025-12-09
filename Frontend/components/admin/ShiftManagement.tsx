@@ -26,7 +26,7 @@ const UserSelector: React.FC<{
     return (
         <div className="relative w-full">
             <div className="flex items-center">
-                <input type="text" value={isOpen ? searchTerm : (selectedUser?.name || '')} onChange={e => { setSearchTerm(e.target.value); setIsOpen(true); }} onFocus={() => { setSearchTerm(''); setIsOpen(true); }} onBlur={() => setTimeout(() => setIsOpen(false), 200)} placeholder="Søg efter bruger..." className="w-full p-2 border rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                <input id={`user-select-${value || 'new'}`} name="user-select" type="text" value={isOpen ? searchTerm : (selectedUser?.name || '')} onChange={e => { setSearchTerm(e.target.value); setIsOpen(true); }} onFocus={() => { setSearchTerm(''); setIsOpen(true); }} onBlur={() => setTimeout(() => setIsOpen(false), 200)} placeholder="Søg efter bruger..." className="w-full p-2 border rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                 {value && (<button type="button" onClick={handleClear} className="absolute right-2 text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>)}
             </div>
             {isOpen && (
@@ -49,10 +49,10 @@ interface EditShiftModalProps {
 }
 
 const EditShiftModal: React.FC<EditShiftModalProps> = ({ shift: initialShift, onSave, onClose }) => {
-    const { shiftRoles, userHasPermission, shiftRoleTypes } = useData(); 
+    const { shiftRoles, userHasPermission, shiftRoleTypes } = useData();
     const [shift, setShift] = useState(initialShift);
     const [roles, setRoles] = useState(() => shiftRoles.filter(r => r.shiftId === initialShift.id));
-    
+
     const canManageRoles = useMemo(() => userHasPermission('manage_roles'), [userHasPermission]);
 
     const handleRoleChange = (index: number, field: 'roleName' | 'userId', value: string | null) => {
@@ -60,7 +60,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ shift: initialShift, on
         newRoles[index] = { ...newRoles[index], [field]: value };
         setRoles(newRoles);
     };
-    
+
     const addRole = () => setRoles([...roles, { id: `new-${Date.now()}`, shiftId: shift.id, roleName: '', userId: null }]);
     const removeRole = (id: string) => {
         const roleToRemove = roles.find(r => r.id === id);
@@ -75,43 +75,45 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ shift: initialShift, on
         e.preventDefault();
         onSave(shift, roles);
     };
-    
+
     return (
-         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
             <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="p-6">
                     <h3 className="text-xl font-semibold mb-4 dark:text-slate-100">Rediger Vagt</h3>
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex-1">
-                                 <label htmlFor="edit-shift-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                 <input id="edit-shift-date" name="date" type="date" value={shift.date} onChange={e => setShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                <label htmlFor="edit-shift-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
+                                <input id="edit-shift-date" name="date" type="date" value={shift.date} onChange={e => setShift(s => ({ ...s, date: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
                                 <label htmlFor="edit-shift-start" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
-                                <input id="edit-shift-start" name="startTime" type="time" value={shift.startTime || ''} onChange={e => setShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                <input id="edit-shift-start" name="startTime" type="time" value={shift.startTime || ''} onChange={e => setShift(s => ({ ...s, startTime: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
                                 <label htmlFor="edit-shift-end" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
-                                <input id="edit-shift-end" name="endTime" type="time" value={shift.endTime || ''} onChange={e => setShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                                <input id="edit-shift-end" name="endTime" type="time" value={shift.endTime || ''} onChange={e => setShift(s => ({ ...s, endTime: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                         </div>
                         <div>
                             <label htmlFor="edit-shift-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
-                            <input id="edit-shift-title" name="title" type="text" value={shift.title || ''} onChange={e => setShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <input id="edit-shift-title" name="title" type="text" value={shift.title || ''} onChange={e => setShift(s => ({ ...s, title: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                         </div>
                         <div>
-                             <label htmlFor="edit-shift-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
-                             <textarea id="edit-shift-desc" name="description" value={shift.description || ''} onChange={e => setShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
+                            <label htmlFor="edit-shift-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
+                            <textarea id="edit-shift-desc" name="description" value={shift.description || ''} onChange={e => setShift(s => ({ ...s, description: e.target.value }))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                         </div>
                     </div>
                 </div>
                 <div className="p-6 border-y dark:border-slate-700 overflow-y-auto">
-                     <h4 className="text-lg font-semibold mb-2 dark:text-slate-200">Vagtroller</h4>
-                     <div className="space-y-2">
+                    <h4 className="text-lg font-semibold mb-2 dark:text-slate-200">Vagtroller</h4>
+                    <div className="space-y-2">
                         {roles.map((role, index) => (
                             <div key={role.id} className="flex gap-2 items-center">
                                 <select
+                                    id={`edit-role-type-${role.id}`}
+                                    name={`edit-role-type-${role.id}`}
                                     value={role.roleName}
                                     onChange={e => handleRoleChange(index, 'roleName', e.target.value)}
                                     className="flex-grow p-2 border rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
@@ -121,28 +123,28 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({ shift: initialShift, on
                                         <option key={type} value={type}>{type}</option>
                                     ))}
                                 </select>
-                                
+
                                 <UserSelector
                                     value={role.userId}
                                     onChange={userId => handleRoleChange(index, 'userId', userId)}
                                 />
-                                
+
                                 {canManageRoles && (
                                     <button type="button" onClick={() => removeRole(role.id)} className="text-rose-500 hover:text-rose-700 p-2"><TrashIcon /></button>
                                 )}
                             </div>
                         ))}
-                     </div>
-                     {canManageRoles && (
+                    </div>
+                    {canManageRoles && (
                         <button type="button" onClick={addRole} className="mt-3 text-sm font-medium text-emerald-600 hover:underline">Tilføj Rolle</button>
-                     )}
+                    )}
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 mt-auto">
                     <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600">Annuller</button>
                     <button type="submit" className="px-4 py-2 rounded-md text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700">Gem Vagt</button>
                 </div>
             </form>
-         </div>
+        </div>
     );
 };
 
@@ -178,7 +180,7 @@ export const ShiftManagement: React.FC = () => {
                 userId: role.userId,
                 roleName: role.roleName
             }));
-        
+
         try {
             await api.createShift({ ...createdShift, roles: createdRoles });
             setShifts(prev => [...prev, createdShift]);
@@ -195,7 +197,7 @@ export const ShiftManagement: React.FC = () => {
     };
 
     const handleNewShiftRoleChange = (tempId: string, field: 'roleName' | 'userId', value: string | null) => {
-        setNewShiftRoles(prev => prev.map(r => r.tempId === tempId ? {...r, [field]: value} : r));
+        setNewShiftRoles(prev => prev.map(r => r.tempId === tempId ? { ...r, [field]: value } : r));
     };
 
     const addRoleToNewShift = () => setNewShiftRoles(prev => [...prev, { tempId: `temp${Date.now()}`, roleName: '', userId: null }]);
@@ -205,7 +207,7 @@ export const ShiftManagement: React.FC = () => {
         try {
             await api.updateShift({ ...updatedShift, roles: updatedRolesData });
             setShifts(prev => prev.map(s => s.id === updatedShift.id ? updatedShift : s));
-            
+
             // Note: Since the backend handles role updates, we should theoretically re-fetch data.
             // For simplicity, we update local state optimistically here, assuming success.
             // In a real app, re-fetching shiftRoles might be safer.
@@ -213,21 +215,21 @@ export const ShiftManagement: React.FC = () => {
             const updatedRoleIds = updatedRolesData.map(r => r.id).filter(Boolean);
             const rolesToDelete = existingRoleIdsOnShift.filter(id => !updatedRoleIds.includes(id));
             const rolesToUpdate = updatedRolesData.filter(r => r.id && !r.id.startsWith('new-'));
-            const rolesToAdd = updatedRolesData.filter(r => r.id && r.id.startsWith('new-')).map(({ id, ...rest }) => ({...rest, id: generateId(), shiftId: updatedShift.id}));
-            
+            const rolesToAdd = updatedRolesData.filter(r => r.id && r.id.startsWith('new-')).map(({ id, ...rest }) => ({ ...rest, id: generateId(), shiftId: updatedShift.id }));
+
             setShiftRoles(prev => {
                 let nextState = prev.filter(r => !rolesToDelete.includes(r.id));
                 rolesToUpdate.forEach(updatedRole => { nextState = nextState.map(r => r.id === updatedRole.id ? { ...r, ...updatedRole } : r); });
                 return [...nextState, ...rolesToAdd];
             });
-            
+
             toast.success(`Vagt for ${updatedShift.date} er gemt.`);
             setEditingShift(null);
         } catch (e) {
             toast.error("Kunne ikke gemme ændringer.");
         }
     };
-    
+
     const handleDeleteShift = async (shiftId: string) => {
         if (window.confirm("Er du sikker? Dette sletter vagten og alle dens roller.")) {
             try {
@@ -240,8 +242,8 @@ export const ShiftManagement: React.FC = () => {
             }
         }
     };
-    
-     const handleDownloadShiftTemplate = () => {
+
+    const handleDownloadShiftTemplate = () => {
         const uniqueRoleNames = [...new Set(shiftRoles.map(r => r.roleName))].sort();
         const header = ["Dato", "Starttid", "Sluttid", "Overskrift", "Beskrivelse", ...uniqueRoleNames].map(h => `"${h}"`).join(',');
         const tomorrow = new Date();
@@ -279,7 +281,7 @@ export const ShiftManagement: React.FC = () => {
                 const fixedCols = [dateIndex, titleIndex, descIndex, startIndex, endIndex].filter(i => i !== -1);
                 const roleIndices = header.map((_, i) => i).filter(i => !fixedCols.includes(i));
                 if (dateIndex === -1) throw new Error("CSV mangler 'Dato' kolonne.");
-                
+
                 let successCount = 0;
                 for (let i = 1; i < lines.length; i++) {
                     const data = lines[i].split(',');
@@ -292,7 +294,7 @@ export const ShiftManagement: React.FC = () => {
                         startTime: startIndex !== -1 ? data[startIndex] : undefined,
                         endTime: endIndex !== -1 ? data[endIndex] : undefined,
                     };
-                    
+
                     const newRoles = [];
                     roleIndices.forEach(idx => {
                         const roleName = header[idx];
@@ -316,7 +318,7 @@ export const ShiftManagement: React.FC = () => {
                     setShiftRoles(prev => [...prev, ...newRoles]);
                     successCount++;
                 }
-                
+
                 toast.success(`Importerede ${successCount} vagter.`);
             } catch (error: any) {
                 toast.error(`Import Fejl: ${error.message}`);
@@ -344,33 +346,32 @@ export const ShiftManagement: React.FC = () => {
                 const searchMatch = !shiftSearch || (s.title || '').toLowerCase().includes(shiftSearch.toLowerCase());
                 return monthMatch && searchMatch;
             })
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [shifts, selectedMonth, shiftSearch]);
 
     const handleToggleSelectShift = (shiftId: string) => { setSelectedShiftIds(prev => prev.includes(shiftId) ? prev.filter(id => id !== shiftId) : [...prev, shiftId]); };
     const handleToggleSelectAll = () => { if (selectedShiftIds.length === filteredAndSortedShifts.length) { setSelectedShiftIds([]); } else { setSelectedShiftIds(filteredAndSortedShifts.map(s => s.id)); } };
-    
-    const handleBulkDeleteShifts = async () => { 
-        if (selectedShiftIds.length === 0) return; 
-        if (window.confirm(`Slet ${selectedShiftIds.length} vagter?`)) { 
+
+    const handleBulkDeleteShifts = async () => {
+        if (selectedShiftIds.length === 0) return;
+        if (window.confirm(`Slet ${selectedShiftIds.length} vagter?`)) {
             try {
                 for (const id of selectedShiftIds) {
                     await api.deleteShift(id);
                 }
-                setShifts(prev => prev.filter(s => !selectedShiftIds.includes(s.id))); 
-                setShiftRoles(prev => prev.filter(r => !selectedShiftIds.includes(r.shiftId))); 
-                toast.success("Slettet."); 
-                setSelectedShiftIds([]); 
-            } catch(e) {
+                setShifts(prev => prev.filter(s => !selectedShiftIds.includes(s.id)));
+                setShiftRoles(prev => prev.filter(r => !selectedShiftIds.includes(r.shiftId)));
+                toast.success("Slettet.");
+                setSelectedShiftIds([]);
+            } catch (e) {
                 toast.error("Fejl under sletning.");
             }
-        } 
+        }
     };
 
-    const tabClasses = (tabName: ShiftManagementTab) => 
-        `px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 border-b-2 ${
-            activeTab === tabName 
-            ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
+    const tabClasses = (tabName: ShiftManagementTab) =>
+        `px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 border-b-2 ${activeTab === tabName
+            ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
             : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
         }`;
 
@@ -393,24 +394,24 @@ export const ShiftManagement: React.FC = () => {
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex-1">
                                 <label htmlFor="new-shift-date" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Dato</label>
-                                <input id="new-shift-date" name="date" type="date" value={newShift.date} onChange={e => setNewShift(s => ({...s, date: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="new-shift-date" name="date" type="date" value={newShift.date} onChange={e => setNewShift(s => ({ ...s, date: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
                                 <label htmlFor="new-shift-start" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Fra kl.</label>
-                                <input id="new-shift-start" name="startTime" type="time" value={newShift.startTime} onChange={e => setNewShift(s => ({...s, startTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="new-shift-start" name="startTime" type="time" value={newShift.startTime} onChange={e => setNewShift(s => ({ ...s, startTime: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                             <div className="flex-1">
                                 <label htmlFor="new-shift-end" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Til kl.</label>
-                                <input id="new-shift-end" name="endTime" type="time" value={newShift.endTime} onChange={e => setNewShift(s => ({...s, endTime: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                                <input id="new-shift-end" name="endTime" type="time" value={newShift.endTime} onChange={e => setNewShift(s => ({ ...s, endTime: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                             </div>
                         </div>
                         <div>
                             <label htmlFor="new-shift-title" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titel (valgfri)</label>
-                            <input id="new-shift-title" name="title" type="text" value={newShift.title} onChange={e => setNewShift(s => ({...s, title: e.target.value}))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"/>
+                            <input id="new-shift-title" name="title" type="text" value={newShift.title} onChange={e => setNewShift(s => ({ ...s, title: e.target.value }))} className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="new-shift-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Beskrivelse (valgfri)</label>
-                            <textarea id="new-shift-desc" name="description" value={newShift.description} onChange={e => setNewShift(s => ({...s, description: e.target.value}))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
+                            <textarea id="new-shift-desc" name="description" value={newShift.description} onChange={e => setNewShift(s => ({ ...s, description: e.target.value }))} className="p-2 border rounded w-full h-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"></textarea>
                         </div>
                     </div>
                     <div className="mt-4">
@@ -418,9 +419,11 @@ export const ShiftManagement: React.FC = () => {
                         <div className="space-y-2 mt-2">
                             {newShiftRoles.map((role) => (
                                 <div key={role.tempId} className="flex flex-col sm:flex-row gap-2">
-                                    <select 
-                                        value={role.roleName} 
-                                        onChange={e => handleNewShiftRoleChange(role.tempId, 'roleName', e.target.value)} 
+                                    <select
+                                        id={`new-role-type-${role.tempId}`}
+                                        name={`new-role-type-${role.tempId}`}
+                                        value={role.roleName}
+                                        onChange={e => handleNewShiftRoleChange(role.tempId, 'roleName', e.target.value)}
                                         className="sm:flex-1 p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
                                     >
                                         <option value="" disabled>Vælg rolle...</option>
@@ -430,9 +433,9 @@ export const ShiftManagement: React.FC = () => {
                                     </select>
 
                                     <div className="sm:flex-1">
-                                        <UserSelector 
-                                            value={role.userId} 
-                                            onChange={userId => handleNewShiftRoleChange(role.tempId, 'userId', userId)} 
+                                        <UserSelector
+                                            value={role.userId}
+                                            onChange={userId => handleNewShiftRoleChange(role.tempId, 'userId', userId)}
                                         />
                                     </div>
                                     <button onClick={() => removeRoleFromNewShift(role.tempId)} className="text-rose-500 p-2 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded"><TrashIcon /></button>
@@ -442,7 +445,7 @@ export const ShiftManagement: React.FC = () => {
                         <button onClick={addRoleToNewShift} className="mt-2 text-sm font-medium text-emerald-600 hover:underline">Tilføj Rolle</button>
                     </div>
                     <button onClick={handleCreateShift} className="mt-4 w-full bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700">Opret Vagt</button>
-                    
+
                     <div className="pt-6 mt-6 border-t dark:border-slate-700">
                         <h4 className="text-lg font-semibold mb-2 dark:text-slate-200">...eller Importer Vagtplan fra CSV</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-500 mb-4">Format: `Dato,Starttid,Sluttid,Overskrift,Beskrivelse,RolleNavn1,RolleNavn2,...`</p>
@@ -462,7 +465,7 @@ export const ShiftManagement: React.FC = () => {
             {activeTab === 'shifts' && (
                 <div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                        <input 
+                        <input
                             id="shift-search"
                             name="shift-search"
                             aria-label="Søg efter vagter"
@@ -472,12 +475,12 @@ export const ShiftManagement: React.FC = () => {
                             placeholder="Søg på titel eller beskrivelse..."
                             className="p-2 border rounded w-full border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
                         />
-                        <select 
-                            id="shift-month-filter" 
-                            name="shift-month-filter" 
+                        <select
+                            id="shift-month-filter"
+                            name="shift-month-filter"
                             aria-label="Filtrer efter måned"
-                            value={selectedMonth} 
-                            onChange={e => setSelectedMonth(e.target.value)} 
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
                             className="p-2 border rounded bg-white w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                         >
                             <option value="all">Alle Måneder</option>
@@ -490,7 +493,7 @@ export const ShiftManagement: React.FC = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 mb-2 p-2 border-b dark:border-slate-700">
-                        <input 
+                        <input
                             type="checkbox"
                             id="select-all-shifts"
                             name="select-all-shifts"
@@ -506,7 +509,7 @@ export const ShiftManagement: React.FC = () => {
                             return (
                                 <div key={s.id} className="p-4 border dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div className="flex items-center gap-3 flex-grow">
-                                        <input 
+                                        <input
                                             type="checkbox"
                                             id={`shift-select-${s.id}`}
                                             name={`shift-select-${s.id}`}
@@ -525,8 +528,8 @@ export const ShiftManagement: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
-                                        <button onClick={() => setEditingShift(s)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-2" title="Rediger"><EditIcon/></button>
-                                        <button onClick={() => handleDeleteShift(s.id)} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-2" title="Slet"><TrashIcon/></button>
+                                        <button onClick={() => setEditingShift(s)} className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 p-2" title="Rediger"><EditIcon /></button>
+                                        <button onClick={() => handleDeleteShift(s.id)} className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 p-2" title="Slet"><TrashIcon /></button>
                                     </div>
                                 </div>
                             );
@@ -538,9 +541,9 @@ export const ShiftManagement: React.FC = () => {
             {activeTab === 'roles' && userHasPermission('manage_shift_roles') && (
                 <ShiftRoleTypeManagement />
             )}
-            
+
             {editingShift && (
-                <EditShiftModal 
+                <EditShiftModal
                     shift={editingShift}
                     onSave={handleSaveEditedShift}
                     onClose={() => setEditingShift(null)}

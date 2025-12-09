@@ -351,6 +351,22 @@ ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`);
 COMMIT;
 
+-- --------------------------------------------------------
+
+--
+-- Struktur-dump for tabellen `admin_notifications`
+--
+
+CREATE TABLE IF NOT EXISTS `admin_notifications` (
+  `id` varchar(50) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `message` text NOT NULL,
+  `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
+  `read_status` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

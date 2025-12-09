@@ -124,5 +124,7 @@ export const api = {
     uploadGalleryImage: (image: any) => fetchJson('/gallery', { method: 'POST', body: JSON.stringify(image) }),
     deleteGalleryImage: (id: string) => fetchJson('/gallery', { method: 'DELETE', body: JSON.stringify({ id }) }),
 
+    markNotificationsAsRead: () => fetchJson('/notifications/read', { method: 'POST' }),
+
     getImageUrl
 };

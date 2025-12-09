@@ -36,17 +36,17 @@ const ConfirmButton: React.FC<{ onClick: () => void; className?: string; childre
 };
 
 export const InfoPanel: React.FC = () => {
-    const { adminNotifications, setAdminNotifications } = useData();
+    const { adminNotifications, handleMarkNotificationsAsRead, setAdminNotifications } = useData();
 
     // Mark all notifications as read when the component is viewed
     useEffect(() => {
         const hasUnread = adminNotifications.some(n => !n.read);
         if (hasUnread) {
-            setAdminNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            handleMarkNotificationsAsRead();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    
+
     const sortedNotifications = useMemo(() => {
         return [...adminNotifications].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }, [adminNotifications]);
@@ -69,9 +69,9 @@ export const InfoPanel: React.FC = () => {
                     </ConfirmButton>
                 )}
             </div>
-            
+
             {sortedNotifications.length === 0 ? (
-                 <div className="text-center py-10">
+                <div className="text-center py-10">
                     <p className="text-slate-500 dark:text-slate-400">Der er ingen nye hændelser at vise.</p>
                 </div>
             ) : (

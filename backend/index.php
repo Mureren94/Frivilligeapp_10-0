@@ -145,6 +145,12 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $g['data'] = $g['path'];
     }
 
+    $adminNotifications = $pdo->query("SELECT id, type, message, details, created_at as timestamp, read_status as `read` FROM admin_notifications ORDER BY created_at DESC")->fetchAll();
+    foreach ($adminNotifications as &$an) {
+        $an['details'] = json_decode($an['details']);
+        $an['read'] = (bool) $an['read'];
+    }
+
     jsonResponse([
         'currentUser' => $currentUser,
         'users' => $users,
@@ -157,7 +163,8 @@ if ($path === '/init' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         'shiftRoles' => $shiftRoles,
         'shiftTrades' => $shiftTrades,
         'signedUpTaskIds' => $signups,
-        'galleryImages' => $gallery
+        'galleryImages' => $gallery,
+        'adminNotifications' => $adminNotifications
     ]);
 }
 
@@ -317,14 +324,50 @@ if ($path === '/shifts/take' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/shifts/leave' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     requireAuth();
     $data = getJsonInput();
+
+    // Hent info om vagten før vi sletter brugeren fra den
+    $stmtInfo = $pdo->prepare("SELECT s.title, s.date, s.start_time, u.name as user_name, sr.role_name 
+                               FROM shift_roles sr 
+                               JOIN shifts s ON sr.shift_id = s.id 
+                               JOIN users u ON sr.user_id = u.id 
+                               WHERE sr.id = ?");
+    $stmtInfo->execute([$data['shiftRoleId']]);
+    $info = $stmtInfo->fetch();
+
     $stmt = $pdo->prepare("UPDATE shift_roles SET user_id = NULL WHERE id = ? AND user_id = ?");
     $stmt->execute([$data['shiftRoleId'], $_SESSION['user_id']]);
-    if ($stmt->rowCount() > 0)
+
+    if ($stmt->rowCount() > 0) {
+        // Opret notifikation til admins hvis vi fandt info
+        if ($info) {
+            $notifId = uniqid('notif_', true);
+            $message = "{$info['user_name']} har forladt vagten '{$info['title']}' ({$info['role_name']}) d. {$info['date']}";
+            $details = json_encode([
+                'userName' => $info['user_name'],
+                'shiftTitle' => $info['title'],
+                'shiftDate' => $info['date'],
+                'roleName' => $info['role_name']
+            ]);
+
+            $pdo->prepare("INSERT INTO admin_notifications (id, type, message, details) VALUES (?, 'ShiftLeft', ?, ?)")
+                ->execute([$notifId, $message, $details]);
+        }
         jsonResponse(['success' => true]);
-    else {
+    } else {
         http_response_code(400);
         jsonResponse(['error' => 'Kunne ikke forlade vagt']);
     }
+}
+
+// --- NOTIFICATIONS ---
+
+if ($path === '/notifications/read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireAuth();
+    // Kun admins/superadmins måske? For nu tillader vi alle auth brugere, 
+    // men frontend styrer hvem der ser hvad.
+
+    $pdo->prepare("UPDATE admin_notifications SET read_status = 1 WHERE read_status = 0")->execute();
+    jsonResponse(['success' => true]);
 }
 
 // --- SHIFT TRADES ---
