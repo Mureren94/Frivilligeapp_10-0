@@ -70,7 +70,7 @@ export interface IDataContext {
   setAdminNotifications: React.Dispatch<React.SetStateAction<AdminNotification[]>>;
   setGalleryImages: React.Dispatch<React.SetStateAction<GalleryImage[]>>;
 
-  handleLogin: (email: string, password: string) => Promise<boolean>;
+  handleLogin: (email: string, password: string, remember?: boolean) => Promise<boolean>;
   handleLogout: (callback: () => void) => Promise<void>;
   handleSignUp: (taskId: string) => Promise<void>;
   handleCreateTask: (newTask: Omit<Task, 'id' | 'created_by' | 'is_completed'>) => Promise<void>;

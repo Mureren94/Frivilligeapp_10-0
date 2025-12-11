@@ -1,36 +1,24 @@
 import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { initialUsers } from '../initialData';
+
 
 interface LoginPageProps {
-    onLogin: (email: string, password: string) => boolean;
+    onLogin: (email: string, password: string, remember: boolean) => boolean;
     onLoginSuccess: () => void;
     message?: string;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onLoginSuccess, message }) => {
     const { settings } = useData();
-    const [email, setEmail] = useState('superadmin@test.dk');
-    const [password, setPassword] = useState('superadmin');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [selectedTestRole, setSelectedTestRole] = useState('superadmin');
-
-    const handleTestRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const roleId = e.target.value;
-        setSelectedTestRole(roleId);
-
-        const testUser = initialUsers.find(u => u.role === roleId);
-        if (testUser && testUser.password) {
-            setEmail(testUser.email);
-            setPassword(testUser.password);
-            setError('');
-        }
-    };
+    const [rememberMe, setRememberMe] = useState(false);
 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const success = onLogin(email, password);
+        const success = onLogin(email, password, rememberMe);
         if (!success) {
             setError('Ugyldig email eller adgangskode.');
         } else {
@@ -49,21 +37,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onLoginSuccess, m
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && <p className="text-sm text-center text-rose-500 bg-rose-50 dark:bg-rose-900/30 p-3 rounded-md">{error}</p>}
                     {message && <p className="text-sm text-center text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-md">{message}</p>}
-
-                    <div>
-                        <label htmlFor="test-role-selector" className="block text-sm font-medium text-slate-700 dark:text-slate-400">Vælg testbruger</label>
-                        <select
-                            id="test-role-selector"
-                            name="test-role-selector"
-                            value={selectedTestRole}
-                            onChange={handleTestRoleChange}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
-                        >
-                            <option value="superadmin">Super Admin</option>
-                            <option value="admin">Admin</option>
-                            <option value="bruger">Bruger</option>
-                        </select>
-                    </div>
 
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
@@ -96,7 +69,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onLoginSuccess, m
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <input
+                                id="remember-me"
+                                name="remember-me"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                                Husk mig
+                            </label>
+                        </div>
+
                         <div className="text-sm">
                             <a href="#forgot-password" className="font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-500">
                                 Glemt adgangskode?

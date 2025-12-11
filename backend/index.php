@@ -10,6 +10,25 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 1.5. CHECK FOR REMEMBER ME COOKIE (Middleware)
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['auth_token'])) {
+    $token = $_COOKIE['auth_token'];
+    $hashedToken = hash('sha256', $token);
+    
+    $stmt = $pdo->prepare("SELECT ut.user_id, u.role_id, ut.expires_at 
+                           FROM user_tokens ut 
+                           JOIN users u ON ut.user_id = u.id 
+                           WHERE ut.token = ? AND ut.expires_at > NOW()");
+    $stmt->execute([$hashedToken]);
+    $tokenRow = $stmt->fetch();
+    
+    if ($tokenRow) {
+        $_SESSION['user_id'] = $tokenRow['user_id'];
+        $_SESSION['role_id'] = $tokenRow['role_id'];
+        session_regenerate_id(true);
+    }
+}
+
 // 2. CORS (Tillad adgang fra frontend)
 $allowedOrigins = [
     'http://localhost:3000',
@@ -77,6 +96,27 @@ if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($input['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role_id'] = $user['role_id'];
+        
+        // Handle Remember Me
+        if (!empty($input['remember'])) {
+            $token = bin2hex(random_bytes(32));
+            $hashedToken = hash('sha256', $token);
+            $expires = date('Y-m-d H:i:s', time() + 60 * 60 * 24 * 30); // 30 days
+            
+            $pdo->prepare("INSERT INTO user_tokens (user_id, token, expires_at) VALUES (?, ?, ?)")
+                ->execute([$user['id'], $hashedToken, $expires]);
+                
+            // Set secure cookie
+            setcookie('auth_token', $token, [
+                'expires' => time() + 60 * 60 * 24 * 30,
+                'path' => '/',
+                // 'domain' => 'voreskerne.com', // Uncomment in production if needed
+                'secure' => true,     // Require HTTPS
+                'httponly' => true,   // JavaScript cannot access
+                'samesite' => 'Lax'
+            ]);
+        }
+        
         unset($user['password_hash']);
         jsonResponse(['success' => true, 'user' => $user]);
     } else {
@@ -86,6 +126,21 @@ if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($path === '/logout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Clear token from DB if it exists
+    if (isset($_COOKIE['auth_token'])) {
+        $hashedToken = hash('sha256', $_COOKIE['auth_token']);
+        $pdo->prepare("DELETE FROM user_tokens WHERE token = ?")->execute([$hashedToken]);
+        
+        // Clear cookie
+        setcookie('auth_token', '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
+    
     session_destroy();
     jsonResponse(['success' => true]);
 }

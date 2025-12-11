@@ -36,12 +36,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setAdminNotifications(data.adminNotifications || []);
             if (data.currentUser) { setCurrentUser(data.currentUser); setSignedUpTaskIds(data.signedUpTaskIds); }
         } catch (error) {
-            console.error("Kunne ikke hente data, bruger mock data i stedet", error);
-            // Fallback til mock data
-            setUsers(initialUsers); setRoles(initialRoles); setTasks(initialTasks);
-            setCategories(initialCategories); setShiftRoleTypes(['Vagtleder', 'Frivillig', 'Tekniker']);
-            setSettings(initialSettings); setShifts(initialShifts); setShiftRoles(initialShiftRoles);
-            setShiftTrades([]); setGalleryImages([]);
+            console.error("Kunne ikke hente data", error);
+            // Ingen fallback til mock data - brugeren skal logge ind eller vi håndterer fejlen
+            if (currentUser) {
+                 // Hvis vi troede vi var logget ind, men fik fejl, log ud
+                 setCurrentUser(null);
+            }
         }
         finally { setIsLoading(false); }
     };
@@ -66,9 +66,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return userRole?.permissions?.includes(permission) ?? false;
     }, [currentUser, roles]);
 
-    const handleLogin = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const handleLogin = useCallback(async (email: string, password: string, remember: boolean = false): Promise<boolean> => {
         try {
-            const res: any = await api.login({ email, password });
+            const res: any = await api.login({ email, password, remember });
             if (res.success) { await fetchData(); return true; }
             return false;
         } catch (e) { return false; }
@@ -330,6 +330,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userTaskSignups, passwordResetTokens, signedUpTaskIds, theme, adminNotifications, galleryImages,
         setTasks, setCategories, setShiftRoleTypes, setUsers, setRoles, setShifts, setShiftRoles, setShiftTrades, setSettings,
         setPasswordResetTokens, setAdminNotifications, setGalleryImages,
+
         handleLogin, handleLogout, handleSignUp, handleCreateTask, handleUnregister, handleProfileSave,
         handlePasswordReset, handleForgotPasswordRequest, toggleTheme, userHasPermission, sendEmailNotification,
         handleTakeShiftRole, handleLeaveShiftRole, handleInitiateShiftTrade, handleAcceptShiftTrade, handleCancelShiftTrade,
