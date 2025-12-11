@@ -51,7 +51,7 @@ function saveBase64Image($base64String, $folder = 'uploads/') {
         error_log("Sikkerhedsadvarsel: Filen er ikke et gyldigt billede.");
         return null;
     }
-    imagedestroy($img); // Ryd op i hukommelsen
+    unset($img); // Ryd op i hukommelsen (PHP 8+ bruger objekter cleanup)
 
     // 5. Generer filnavn og gem
     $extension = $allowedTypes[$mimeType];
