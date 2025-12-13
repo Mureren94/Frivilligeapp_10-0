@@ -65,6 +65,18 @@ $users = [
         '44556677',
         0,
         json_encode(['new_task' => true, 'shift_trade_completed' => true, 'newsletter' => true])
+    ],
+    [
+        '5',
+        'Kenneth Michael Thomsen',
+        'odensemurerne@gmail.com',
+        password_hash('DetteErEnTest', PASSWORD_DEFAULT),
+        'bruger',
+        100,
+        'https://picsum.photos/seed/5/200',
+        '+452819113334',
+        1,
+        json_encode(['new_task' => true, 'shift_trade_completed' => true, 'newsletter' => true])
     ]
 ];
 

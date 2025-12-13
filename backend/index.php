@@ -121,7 +121,12 @@ if ($path === '/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonResponse(['success' => true, 'user' => $user]);
     } else {
         http_response_code(401);
-        jsonResponse(['error' => 'Ugyldigt login']);
+        // DEBUGGING: Send specific error
+        if (!$user) {
+            jsonResponse(['error' => 'Bruger ikke fundet med denne email']);
+        } else {
+            jsonResponse(['error' => 'Forkert adgangskode']);
+        }
     }
 }
 
@@ -499,13 +504,18 @@ if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($path === '/users' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
     requireAuth();
     $data = getJsonInput();
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role_id != 'superadmin'");
-    $stmt->execute([$data['id']]);
-    if ($stmt->rowCount() > 0)
-        jsonResponse(['success' => true]);
-    else {
-        http_response_code(400);
-        jsonResponse(['error' => 'Kan ikke slette bruger']);
+    try {
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role_id != 'superadmin'");
+        $stmt->execute([$data['id']]);
+        if ($stmt->rowCount() > 0) {
+            jsonResponse(['success' => true]);
+        } else {
+            http_response_code(400);
+            jsonResponse(['error' => 'Kan ikke slette bruger (måske er det en Super Admin?)']);
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        jsonResponse(['error' => 'Database fejl: ' . $e->getMessage()]);
     }
 }
 

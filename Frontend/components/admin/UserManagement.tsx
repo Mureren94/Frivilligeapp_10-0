@@ -155,12 +155,22 @@ export const UserManagement: React.FC = () => {
     };
 
     const onDeleteUser = async (userId: string) => {
+        console.log("Delete button clicked for user:", userId); // DEBUG
         if (userId === currentUser?.id) {
             toast.error("Du kan ikke slette dig selv.");
             return;
         }
+        
         if (window.confirm("Er du sikker på, du vil slette denne bruger?")) {
-            await handleDeleteUser(userId);
+            console.log("User confirmed deletion"); // DEBUG
+            try {
+                await handleDeleteUser(userId);
+                // Note: success handling is in DataContext (toast.success)
+            } catch (err) {
+                console.error("Error in component calling handleDeleteUser:", err);
+            }
+        } else {
+            console.log("User cancelled deletion"); // DEBUG
         }
     };
 

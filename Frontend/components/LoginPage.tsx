@@ -3,7 +3,7 @@ import { useData } from '../contexts/DataContext';
 
 
 interface LoginPageProps {
-    onLogin: (email: string, password: string, remember: boolean) => boolean;
+    onLogin: (email: string, password: string, remember: boolean) => Promise<boolean>;
     onLoginSuccess: () => void;
     message?: string;
 }
@@ -16,14 +16,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onLoginSuccess, m
     const [rememberMe, setRememberMe] = useState(false);
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = onLogin(email, password, rememberMe);
-        if (!success) {
-            setError('Ugyldig email eller adgangskode.');
-        } else {
-            setError('');
+        setError('');
+        
+        try {
+            await onLogin(email, password, rememberMe);
             onLoginSuccess();
+        } catch (err: any) {
+            console.error("Login error caught in page:", err);
+            // Vis den specifikke fejlbesked fra backend (f.eks. "Forkert adgangskode")
+            setError(err.message || 'Der skete en fejl under login.');
         }
     };
 

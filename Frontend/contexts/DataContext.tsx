@@ -67,11 +67,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [currentUser, roles]);
 
     const handleLogin = useCallback(async (email: string, password: string, remember: boolean = false): Promise<boolean> => {
-        try {
-            const res: any = await api.login({ email, password, remember });
-            if (res.success) { await fetchData(); return true; }
-            return false;
-        } catch (e) { return false; }
+        // Vi fanger ikke fejlen her, men lader den boble op til UI (LoginPage)
+        const res: any = await api.login({ email, password, remember });
+        if (res.success) { 
+            await fetchData(); 
+            return true; 
+        }
+        return false;
     }, []);
 
     const handleLogout = useCallback(async (callback: () => void) => {
@@ -285,13 +287,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             toast.success("Bruger gemt.");
             return true;
         } catch (e) {
-            console.error("API Error, using mock:", e);
-            setUsers(prev => {
-                const exists = prev.some(u => u.id === user.id);
-                return exists ? prev.map(u => u.id === user.id ? user : u) : [...prev, user];
-            });
-            toast.success("Bruger gemt (Mock).");
-            return true;
+            console.error("API Error:", e);
+            toast.error("Kunne ikke gemme bruger.");
+            return false;
         }
     }, []);
 
@@ -301,9 +299,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUsers(prev => prev.filter(u => u.id !== userId));
             toast.success("Bruger slettet.");
         } catch (e) {
-            console.error("API Error, using mock:", e);
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            toast.success("Bruger slettet (Mock).");
+            console.error("API Error:", e);
+            toast.error("Kunne ikke slette bruger.");
         }
     }, []);
 
